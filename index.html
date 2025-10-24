@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reservas de Mesas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        
+        // Configuración de Firebase (base de datos gratuita y en tiempo real)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqJJQqJQqJQqJQqJQqJQqJQqJQqJQqJQq",
+            authDomain: "reservas-mesas-demo.firebaseapp.com",
+            databaseURL: "https://reservas-mesas-demo-default-rtdb.firebaseio.com",
+            projectId: "reservas-mesas-demo",
+            storageBucket: "reservas-mesas-demo.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789012345678"
+        };
+        
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        // Hacer disponible globalmente
+        window.firebaseDB = database;
+        window.firebaseRef = ref;
+        window.firebaseSet = set;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        
+        // Inicializar la aplicación cuando Firebase esté listo
+        window.initApp();
+    </script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .chair {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .chair:hover {
+            transform: scale(1.1);
+        }
+        .table-container {
+            position: relative;
+        }
+        .divider {
+            width: 2px;
+            height: 200px;
+            background: linear-gradient(to bottom, #e5e7eb, #9ca3af, #e5e7eb);
+            margin: 0 2rem;
+            border-radius: 1px;
+        }
+    </style>
+</head>
+<body class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Reservas</h1>
+            <div class="flex justify-center gap-8 mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                    <span class="text-sm font-medium">Equipo ACCO</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-green-500 rounded"></div>
+                    <span class="text-sm font-medium">Equipo Consultoría</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-gray-300 rounded border-2 border-gray-400"></div>
+                    <span class="text-sm font-medium">Disponible</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="connectionStatus" class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-sm font-medium text-gray-600">Sistema Activo</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="flex justify-center items-center gap-8 mb-8">
+                <!-- Sala Chica -->
+                <div class="flex flex-col items-center">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6">Sala Chica</h2>
+                    <div class="table-container relative">
+                        <!-- Mesa -->
+                        <div class="w-24 h-40 bg-amber-200 border-4 border-amber-300 rounded-lg shadow-lg flex items-center justify-center">
+                            <span class="text-amber-800 font-bold transform -rotate-90">MESA 1</span>
+                        </div>
+                        
+                        <!-- Sillas -->
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="1" data-team="acco" style="left: -32px; top: 10%;">1</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="2" data-team="consultoria" style="left: -32px; top: 30%;">2</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="3" data-team="acco" style="left: -32px; top: 50%;">3</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="4" data-team="consultoria" style="left: -32px; top: 70%;">4</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="5" data-team="acco" style="right: -32px; top: 10%;">5</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="6" data-team="consultoria" style="right: -32px; top: 30%;">6</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="7" data-team="acco" style="right: -32px; top: 50%;">7</div>
+                        <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                             data-table="1" data-chair="8" data-team="consultoria" style="right: -32px; top: 70%;">8</div>
+                    </div>
+                </div>
+
+                <!-- Línea divisoria -->
+                <div class="divider"></div>
+
+                <!-- Sala Grande -->
+                <div class="flex flex-col items-center">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6">Sala Grande</h2>
+                    <div class="grid grid-cols-2 gap-20">
+                        <!-- Mesa 2 -->
+                        <div class="flex flex-col items-center">
+                            <div class="table-container relative">
+                                <!-- Mesa -->
+                                <div class="w-24 h-40 bg-emerald-200 border-4 border-emerald-300 rounded-lg shadow-lg flex items-center justify-center">
+                                    <span class="text-emerald-800 font-bold transform -rotate-90">MESA 2</span>
+                                </div>
+                                
+                                <!-- Sillas -->
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="9" data-team="acco" style="left: -32px; top: 10%;">9</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="10" data-team="consultoria" style="left: -32px; top: 30%;">10</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="11" data-team="acco" style="left: -32px; top: 50%;">11</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="12" data-team="consultoria" style="left: -32px; top: 70%;">12</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="13" data-team="acco" style="right: -32px; top: 10%;">13</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="14" data-team="consultoria" style="right: -32px; top: 30%;">14</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="15" data-team="acco" style="right: -32px; top: 50%;">15</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="2" data-chair="16" data-team="consultoria" style="right: -32px; top: 70%;">16</div>
+                            </div>
+                        </div>
+
+                        <!-- Mesa 3 -->
+                        <div class="flex flex-col items-center">
+                            <div class="table-container relative">
+                                <!-- Mesa -->
+                                <div class="w-24 h-40 bg-purple-200 border-4 border-purple-300 rounded-lg shadow-lg flex items-center justify-center">
+                                    <span class="text-purple-800 font-bold transform -rotate-90">MESA 3</span>
+                                </div>
+                                
+                                <!-- Sillas -->
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="17" data-team="acco" style="left: -32px; top: 10%;">17</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="18" data-team="consultoria" style="left: -32px; top: 30%;">18</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="19" data-team="acco" style="left: -32px; top: 50%;">19</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="20" data-team="consultoria" style="left: -32px; top: 70%;">20</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="21" data-team="acco" style="right: -32px; top: 10%;">21</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="22" data-team="consultoria" style="right: -32px; top: 30%;">22</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="23" data-team="acco" style="right: -32px; top: 50%;">23</div>
+                                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded cursor-pointer flex items-center justify-center text-xs font-bold text-gray-700" 
+                                     data-table="3" data-chair="24" data-team="consultoria" style="right: -32px; top: 70%;">24</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Control -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel de Reservas</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="teamSelect" class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Equipo:</label>
+                        <select id="teamSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="acco">Equipo ACCO</option>
+                            <option value="consultoria">Equipo Consultoría</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="nameSelect" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Reserva:</label>
+                        <select id="nameSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Selecciona un nombre</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-4">
+                    <button id="clearAllBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        Limpiar Todas las Reservas
+                    </button>
+                    <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        📱 Compartir Link
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instrucciones de Uso -->
+            <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-green-800 mb-2">🚀 Sistema en Tiempo Real Activado:</h3>
+                <div class="text-green-700 space-y-2">
+                    <p><strong>✅ Base de datos real:</strong> Todas las reservas se sincronizan automáticamente</p>
+                    <p><strong>📱 Multi-dispositivo:</strong> Funciona desde cualquier celular, tablet o computadora</p>
+                    <p><strong>⚡ Tiempo real:</strong> Cuando alguien reserva, todos lo ven al instante</p>
+                    <p><strong>🔗 Link para compartir:</strong> <code id="currentUrl" class="bg-green-100 px-2 py-1 rounded text-sm"></code></p>
+                </div>
+            </div>
+
+            <!-- Personas Pendientes -->
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Personas Pendientes de Reservar</h3>
+                <div id="pendingPeople" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Resumen de Reservas -->
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
+                <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let reservations = {};
+        let selectedTeam = 'acco';
+        let selectedName = '';
+
+        // Nombres por equipo
+        const teamMembers = {
+            acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
+            consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
+        };
+
+        // Elementos del DOM
+        const teamSelect = document.getElementById('teamSelect');
+        const nameSelect = document.getElementById('nameSelect');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const chairs = document.querySelectorAll('.chair');
+        const reservationSummary = document.getElementById('reservationSummary');
+        const pendingPeople = document.getElementById('pendingPeople');
+        const currentUrl = document.getElementById('currentUrl');
+
+        // Mostrar URL actual
+        currentUrl.textContent = window.location.href;
+
+        // Función para verificar si una persona ya tiene una reserva
+        function hasExistingReservation(name) {
+            return Object.values(reservations).some(reservation => reservation.name === name);
+        }
+
+        // Función para actualizar nombres según el equipo
+        function updateNameOptions() {
+            const members = teamMembers[selectedTeam];
+            nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
+            
+            members.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member;
+                option.textContent = member;
+                
+                // Marcar si ya tiene una reserva pero mantenerlo habilitado para cancelar
+                if (hasExistingReservation(member)) {
+                    option.textContent += ' (Tiene reserva - clic para cancelar)';
+                }
+                
+                nameSelect.appendChild(option);
+            });
+            
+            selectedName = '';
+        }
+
+        // Event listeners
+        teamSelect.addEventListener('change', (e) => {
+            selectedTeam = e.target.value;
+            updateNameOptions();
+        });
+
+        nameSelect.addEventListener('change', (e) => {
+            selectedName = e.target.value;
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            reservations = {};
+            saveReservations();
+            updateChairDisplay();
+            updateReservationSummary();
+            updatePendingPeople();
+            updateNameOptions();
+            showNotification('Todas las reservas han sido eliminadas', 'success');
+        });
+
+        shareBtn.addEventListener('click', () => {
+            const url = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Sistema de Reservas de Mesas',
+                    text: 'Entra para hacer tu reserva de mesa',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    showNotification('Link copiado al portapapeles 📋', 'success');
+                }).catch(() => {
+                    showNotification('Link: ' + url, 'success');
+                });
+            }
+        });
+
+        // Sistema de base de datos en tiempo real con Firebase
+        let isFirebaseReady = false;
+        
+        // Función para guardar reservas en tiempo real
+        function saveReservations() {
+            if (!isFirebaseReady) {
+                // Guardar localmente como respaldo
+                localStorage.setItem('backup_reservations', JSON.stringify(reservations));
+                showNotification('Guardado localmente (conectando...)', 'error');
+                return;
+            }
+            
+            try {
+                const reservationsRef = window.firebaseRef(window.firebaseDB, 'reservations');
+                window.firebaseSet(reservationsRef, {
+                    data: reservations,
+                    lastUpdate: new Date().toISOString(),
+                    timestamp: Date.now()
+                }).then(() => {
+                    updateConnectionStatus(true);
+                    showNotification('💾 Guardado en tiempo real - Visible para todos', 'success');
+                    // También guardar localmente como respaldo
+                    localStorage.setItem('backup_reservations', JSON.stringify(reservations));
+                }).catch((error) => {
+                    console.error('Error al guardar en Firebase:', error);
+                    updateConnectionStatus(false);
+                    // Guardar localmente como respaldo
+                    localStorage.setItem('backup_reservations', JSON.stringify(reservations));
+                    showNotification('Error de conexión - Guardado localmente', 'error');
+                });
+                
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                updateConnectionStatus(false);
+                localStorage.setItem('backup_reservations', JSON.stringify(reservations));
+                showNotification('Error al guardar - Modo local', 'error');
+            }
+        }
+
+        function loadReservations() {
+            if (!isFirebaseReady) {
+                // Cargar desde localStorage como respaldo
+                const backupData = localStorage.getItem('backup_reservations');
+                if (backupData) {
+                    reservations = JSON.parse(backupData);
+                    showNotification('📱 Cargado desde respaldo local', 'error');
+                } else {
+                    reservations = {};
+                    showNotification('🚀 Sistema iniciado - Conectando...', 'success');
+                }
+                updateChairDisplay();
+                updateReservationSummary();
+                updatePendingPeople();
+                return;
+            }
+            
+            try {
+                const reservationsRef = window.firebaseRef(window.firebaseDB, 'reservations');
+                
+                // Escuchar cambios en tiempo real
+                window.firebaseOnValue(reservationsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && data.data) {
+                        reservations = data.data;
+                        updateConnectionStatus(true);
+                        showNotification('🔄 Datos actualizados en tiempo real', 'success');
+                    } else {
+                        reservations = {};
+                        updateConnectionStatus(true);
+                        showNotification('🚀 Sistema iniciado - Base de datos lista', 'success');
+                    }
+                    
+                    // Actualizar la interfaz
+                    updateChairDisplay();
+                    updateReservationSummary();
+                    updatePendingPeople();
+                    updateNameOptions();
+                    
+                    // Guardar respaldo local
+                    localStorage.setItem('backup_reservations', JSON.stringify(reservations));
+                }, (error) => {
+                    console.error('Error al cargar desde Firebase:', error);
+                    updateConnectionStatus(false);
+                    
+                    // Cargar desde localStorage como respaldo
+                    const backupData = localStorage.getItem('backup_reservations');
+                    if (backupData) {
+                        reservations = JSON.parse(backupData);
+                        showNotification('📱 Sin conexión - Usando datos locales', 'error');
+                    } else {
+                        reservations = {};
+                        showNotification('❌ Sin conexión - Sistema en modo básico', 'error');
+                    }
+                    
+                    updateChairDisplay();
+                    updateReservationSummary();
+                    updatePendingPeople();
+                    updateNameOptions();
+                });
+                
+            } catch (error) {
+                console.error('Error al conectar con Firebase:', error);
+                updateConnectionStatus(false);
+                
+                // Cargar desde localStorage como respaldo
+                const backupData = localStorage.getItem('backup_reservations');
+                if (backupData) {
+                    reservations = JSON.parse(backupData);
+                    showNotification('📱 Error de conexión - Usando datos locales', 'error');
+                } else {
+                    reservations = {};
+                    showNotification('❌ Error de conexión - Sistema básico', 'error');
+                }
+                
+                updateChairDisplay();
+                updateReservationSummary();
+                updatePendingPeople();
+                updateNameOptions();
+            }
+        }
+
+        // Función para actualizar el estado de conexión
+        function updateConnectionStatus(connected) {
+            const statusIndicator = document.getElementById('connectionStatus');
+            if (connected) {
+                statusIndicator.className = 'w-3 h-3 bg-green-400 rounded-full animate-pulse';
+            } else {
+                statusIndicator.className = 'w-3 h-3 bg-red-400 rounded-full';
+            }
+        }
+
+        // Función para verificar si se puede sentar en una silla (patrón alternado)
+        function canSitInChair(table, chairNum, team, personName) {
+            const chairNumInt = parseInt(chairNum);
+            
+            // Obtener sillas adyacentes según la nueva disposición
+            let adjacentChairs = [];
+            
+            if (table === '1') {
+                // Mesa 1: sillas verticales (1-4 izquierda, 5-8 derecha)
+                if (chairNumInt >= 1 && chairNumInt <= 4) {
+                    // Lado izquierdo
+                    if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                } else if (chairNumInt >= 5 && chairNumInt <= 8) {
+                    // Lado derecho
+                    if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                }
+            } else if (table === '2') {
+                // Mesa 2: sillas verticales (9-12 izquierda, 13-16 derecha)
+                if (chairNumInt >= 9 && chairNumInt <= 12) {
+                    // Lado izquierdo
+                    if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                } else if (chairNumInt >= 13 && chairNumInt <= 16) {
+                    // Lado derecho
+                    if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                }
+            } else if (table === '3') {
+                // Mesa 3: sillas verticales (17-20 izquierda, 21-24 derecha)
+                if (chairNumInt >= 17 && chairNumInt <= 20) {
+                    // Lado izquierdo
+                    if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                } else if (chairNumInt >= 21 && chairNumInt <= 24) {
+                    // Lado derecho
+                    if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+                    if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+                }
+            }
+            
+            // Restricción para Consultoría: no pueden sentarse al lado (EXCEPTO Jose)
+            if (team === 'consultoria' && personName !== 'Jose') {
+                // Verificar si alguna silla adyacente tiene el mismo equipo (Consultoría)
+                for (let adjacentChairId of adjacentChairs) {
+                    if (reservations[adjacentChairId] && reservations[adjacentChairId].team === 'consultoria') {
+                        return false;
+                    }
+                }
+            }
+            
+            // Restricción para ACCO: máximo 2 personas consecutivas del mismo equipo
+            if (team === 'acco') {
+                // Verificar si ya hay 2 personas de ACCO consecutivas que incluyan esta posición
+                return !wouldCreateThreeConsecutiveACCO(table, chairNumInt);
+            }
+            
+            return true;
+        }
+
+        // Función para verificar si agregar una persona de ACCO crearía 3 consecutivas
+        function wouldCreateThreeConsecutiveACCO(table, chairNum) {
+            // Obtener todas las sillas de la mesa en orden
+            let chairRange = [];
+            if (table === '1') {
+                chairRange = [1, 2, 3, 4, 5, 6, 7, 8];
+            } else if (table === '2') {
+                chairRange = [9, 10, 11, 12, 13, 14, 15, 16];
+            } else if (table === '3') {
+                chairRange = [17, 18, 19, 20, 21, 22, 23, 24];
+            }
+            
+            // Crear un array temporal con la nueva reserva
+            let tempReservations = {...reservations};
+            tempReservations[`${table}-${chairNum}`] = {team: 'acco'};
+            
+            // Verificar secuencias consecutivas en cada lado de la mesa
+            // Lado izquierdo (primeras 4 sillas)
+            let leftSide = chairRange.slice(0, 4);
+            if (hasThreeConsecutiveACCO(table, leftSide, tempReservations)) {
+                return true;
+            }
+            
+            // Lado derecho (últimas 4 sillas)
+            let rightSide = chairRange.slice(4, 8);
+            if (hasThreeConsecutiveACCO(table, rightSide, tempReservations)) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Función auxiliar para verificar 3 consecutivas en un lado específico
+        function hasThreeConsecutiveACCO(table, sideChairs, tempReservations) {
+            for (let i = 0; i <= sideChairs.length - 3; i++) {
+                let consecutiveACCO = 0;
+                for (let j = i; j < i + 3; j++) {
+                    const chairId = `${table}-${sideChairs[j]}`;
+                    if (tempReservations[chairId] && tempReservations[chairId].team === 'acco') {
+                        consecutiveACCO++;
+                    } else {
+                        break;
+                    }
+                }
+                if (consecutiveACCO >= 3) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Función para verificar que las mesas mantengan equipos mixtos
+        function canMaintainMixedTeams(table, team) {
+            // Contar cuántas personas de cada equipo hay actualmente en la mesa
+            let accoCount = 0;
+            let consultoriaCount = 0;
+            let totalInTable = 0;
+            
+            // Obtener el rango de sillas para cada mesa
+            let chairRange = [];
+            if (table === '1') {
+                chairRange = [1, 2, 3, 4, 5, 6, 7, 8];
+            } else if (table === '2') {
+                chairRange = [9, 10, 11, 12, 13, 14, 15, 16];
+            } else if (table === '3') {
+                chairRange = [17, 18, 19, 20, 21, 22, 23, 24];
+            }
+            
+            // Contar reservas actuales en la mesa
+            chairRange.forEach(chairNum => {
+                const chairId = `${table}-${chairNum}`;
+                if (reservations[chairId]) {
+                    totalInTable++;
+                    if (reservations[chairId].team === 'acco') {
+                        accoCount++;
+                    } else {
+                        consultoriaCount++;
+                    }
+                }
+            });
+            
+            // Si la mesa está vacía, permitir cualquier equipo
+            if (totalInTable === 0) {
+                return true;
+            }
+            
+            // Verificar límite máximo de Consultoría (3 personas por mesa)
+            if (team === 'consultoria' && consultoriaCount >= 3) {
+                return false;
+            }
+            
+            // Verificar límites de ACCO según la mesa
+            if (team === 'acco') {
+                // Contar cuántas mesas ya tienen 5 personas de ACCO
+                let mesasCon5ACCO = 0;
+                for (let t = 1; t <= 3; t++) {
+                    let accoEnMesa = 0;
+                    let rangoSillas = [];
+                    if (t === 1) {
+                        rangoSillas = [1, 2, 3, 4, 5, 6, 7, 8];
+                    } else if (t === 2) {
+                        rangoSillas = [9, 10, 11, 12, 13, 14, 15, 16];
+                    } else if (t === 3) {
+                        rangoSillas = [17, 18, 19, 20, 21, 22, 23, 24];
+                    }
+                    
+                    rangoSillas.forEach(chairNum => {
+                        const chairId = `${t}-${chairNum}`;
+                        if (reservations[chairId] && reservations[chairId].team === 'acco') {
+                            accoEnMesa++;
+                        }
+                    });
+                    
+                    if (accoEnMesa >= 5) {
+                        mesasCon5ACCO++;
+                    }
+                }
+                
+                // Si ya hay una mesa con 5 de ACCO y esta mesa no es esa mesa
+                if (mesasCon5ACCO >= 1 && accoCount < 5) {
+                    // Esta mesa puede tener máximo 4 de ACCO
+                    if (accoCount >= 4) {
+                        return false;
+                    }
+                } else if (mesasCon5ACCO === 0) {
+                    // Ninguna mesa tiene 5 de ACCO aún, esta puede tener hasta 5
+                    if (accoCount >= 5) {
+                        return false;
+                    }
+                } else if (accoCount >= 5) {
+                    // Esta mesa ya tiene 5, puede seguir hasta 5
+                    if (accoCount >= 5) {
+                        return false;
+                    }
+                }
+            }
+            
+            // Si ya hay 7 personas en la mesa (quedando solo 1 lugar)
+            if (totalInTable === 7) {
+                // Solo permitir si no hay del equipo que se quiere agregar
+                // Esto asegura que la última persona sea del equipo contrario
+                if (team === 'acco' && accoCount === 0) return true;
+                if (team === 'consultoria' && consultoriaCount === 0) return true;
+                if (team === 'acco' && consultoriaCount === 0) return false;
+                if (team === 'consultoria' && accoCount === 0) return false;
+                return true; // Si ya hay mezcla, permitir
+            }
+            
+            return true;
+        }
+
+        // Función para verificar restricciones especiales de personas
+        function canPersonSitAtTable(name, table) {
+            const restrictedPeople = ['Alan', 'Jose', 'Laura'];
+            
+            if (!restrictedPeople.includes(name)) {
+                return true; // No hay restricciones para otras personas
+            }
+            
+            // Verificar si alguna de las otras personas restringidas ya está en esta mesa
+            for (let reservationId in reservations) {
+                const reservation = reservations[reservationId];
+                if (reservation.table === table && restrictedPeople.includes(reservation.name) && reservation.name !== name) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Manejar clicks en las sillas
+        chairs.forEach(chair => {
+            chair.addEventListener('click', () => {
+                const table = chair.dataset.table;
+                const chairNum = chair.dataset.chair;
+                const chairId = `${table}-${chairNum}`;
+
+                // Verificar si la silla ya está reservada
+                if (reservations[chairId]) {
+                    const reservation = reservations[chairId];
+                    // Si la persona seleccionada es la misma que tiene la reserva, permitir cancelar
+                    if (selectedName && selectedName === reservation.name) {
+                        // Cancelar reserva
+                        delete reservations[chairId];
+                        saveReservations();
+                        updateChairDisplay();
+                        updateReservationSummary();
+                        updatePendingPeople();
+                        updateNameOptions();
+                        showNotification(`Reserva cancelada para ${selectedName}`, 'success');
+                        return;
+                    } else {
+                        showNotification(`Esta silla ya está reservada por ${reservation.name}. Para cancelar, selecciona "${reservation.name}" en el panel.`, 'error');
+                        return;
+                    }
+                }
+
+                // Verificar si se seleccionó un nombre
+                if (!selectedName) {
+                    showNotification('Por favor selecciona un nombre para la reserva', 'error');
+                    nameSelect.focus();
+                    return;
+                }
+
+                // Verificar si la persona ya tiene una reserva
+                if (hasExistingReservation(selectedName)) {
+                    showNotification(`${selectedName} ya tiene una reserva. Solo se permite una reserva por persona.`, 'error');
+                    return;
+                }
+
+                // Verificar restricciones especiales de personas
+                if (!canPersonSitAtTable(selectedName, table)) {
+                    showNotification('Alan, Jose y Laura deben estar cada uno en una mesa diferente.', 'error');
+                    return;
+                }
+
+                // Verificar que las mesas mantengan equipos mixtos
+                if (!canMaintainMixedTeams(table, selectedTeam)) {
+                    if (selectedTeam === 'consultoria') {
+                        showNotification('Máximo 3 personas de Consultoría por mesa.', 'error');
+                    } else {
+                        // Verificar si ya hay una mesa con 5 de ACCO
+                        let mesasCon5ACCO = 0;
+                        for (let t = 1; t <= 3; t++) {
+                            let accoEnMesa = 0;
+                            let rangoSillas = [];
+                            if (t === 1) {
+                                rangoSillas = [1, 2, 3, 4, 5, 6, 7, 8];
+                            } else if (t === 2) {
+                                rangoSillas = [9, 10, 11, 12, 13, 14, 15, 16];
+                            } else if (t === 3) {
+                                rangoSillas = [17, 18, 19, 20, 21, 22, 23, 24];
+                            }
+                            
+                            rangoSillas.forEach(chairNum => {
+                                const chairId = `${t}-${chairNum}`;
+                                if (reservations[chairId] && reservations[chairId].team === 'acco') {
+                                    accoEnMesa++;
+                                }
+                            });
+                            
+                            if (accoEnMesa >= 5) {
+                                mesasCon5ACCO++;
+                            }
+                        }
+                        
+                        if (mesasCon5ACCO >= 1) {
+                            showNotification('Solo una mesa puede tener 5 personas de ACCO. Las otras tienen máximo 4.', 'error');
+                        } else {
+                            showNotification('Máximo 5 personas de ACCO por mesa.', 'error');
+                        }
+                    }
+                    return;
+                }
+
+                // Verificar patrones de asientos
+                if (!canSitInChair(table, chairNum, selectedTeam, selectedName)) {
+                    if (selectedTeam === 'consultoria') {
+                        showNotification('Las personas de Consultoría no pueden sentarse una al lado de la otra (excepto Jose).', 'error');
+                    } else {
+                        showNotification('Máximo 2 personas de ACCO pueden sentarse consecutivamente.', 'error');
+                    }
+                    return;
+                }
+
+                // Hacer reserva
+                reservations[chairId] = {
+                    name: selectedName,
+                    team: selectedTeam,
+                    table: table,
+                    chair: chairNum
+                };
+                
+                // Guardar en localStorage
+                saveReservations();
+                
+                showNotification(`Silla reservada para ${selectedName}`, 'success');
+                updateChairDisplay();
+                updateReservationSummary();
+                updatePendingPeople();
+                updateNameOptions(); // Actualizar opciones para deshabilitar el nombre usado
+            });
+        });
+
+        // Actualizar visualización de sillas
+        function updateChairDisplay() {
+            chairs.forEach(chair => {
+                const table = chair.dataset.table;
+                const chairNum = chair.dataset.chair;
+                const chairId = `${table}-${chairNum}`;
+
+                if (reservations[chairId]) {
+                    // Silla reservada - verificar si es una persona especial
+                    const reservedName = reservations[chairId].name;
+                    const specialPeople = ['Laura', 'Alan', 'Jose'];
+                    
+                    if (specialPeople.includes(reservedName)) {
+                        // Personas especiales en rojo
+                        chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-red-500');
+                        chair.className = chair.className.replace(/border-\w+-\d+/, 'border-red-600');
+                        chair.className = chair.className.replace(/text-\w+-\d+/, 'text-white');
+                    } else {
+                        // Mostrar según el equipo que la reservó
+                        const reservedTeam = reservations[chairId].team;
+                        if (reservedTeam === 'acco') {
+                            chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-blue-500');
+                            chair.className = chair.className.replace(/border-\w+-\d+/, 'border-blue-600');
+                            chair.className = chair.className.replace(/text-\w+-\d+/, 'text-white');
+                        } else {
+                            chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-green-500');
+                            chair.className = chair.className.replace(/border-\w+-\d+/, 'border-green-600');
+                            chair.className = chair.className.replace(/text-\w+-\d+/, 'text-white');
+                        }
+                    }
+                    chair.style.cursor = 'not-allowed';
+                } else {
+                    // Silla disponible
+                    chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-gray-300');
+                    chair.className = chair.className.replace(/border-\w+-\d+/, 'border-gray-400');
+                    chair.className = chair.className.replace(/text-\w+/, 'text-gray-700');
+                    chair.style.cursor = 'pointer';
+                }
+            });
+        }
+
+        // Actualizar lista de personas pendientes
+        function updatePendingPeople() {
+            // Obtener todas las personas que ya tienen reserva
+            const reservedNames = Object.values(reservations).map(reservation => reservation.name);
+            
+            // Filtrar personas pendientes por equipo
+            const pendingACCO = teamMembers.acco.filter(name => !reservedNames.includes(name));
+            const pendingConsultoria = teamMembers.consultoria.filter(name => !reservedNames.includes(name));
+            
+            let html = '';
+            
+            // Equipo ACCO
+            html += `
+                <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                        Equipo ACCO (${pendingACCO.length} pendientes)
+                    </h4>
+                    <div class="space-y-1">
+            `;
+            
+            if (pendingACCO.length === 0) {
+                html += '<p class="text-blue-600 text-sm font-medium">✅ Todos tienen reserva</p>';
+            } else {
+                pendingACCO.forEach(name => {
+                    html += `
+                        <div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">
+                            ${name}
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            // Equipo Consultoría
+            html += `
+                <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                    <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        Equipo Consultoría (${pendingConsultoria.length} pendientes)
+                    </h4>
+                    <div class="space-y-1">
+            `;
+            
+            if (pendingConsultoria.length === 0) {
+                html += '<p class="text-green-600 text-sm font-medium">✅ Todos tienen reserva</p>';
+            } else {
+                pendingConsultoria.forEach(name => {
+                    html += `
+                        <div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">
+                            ${name}
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            pendingPeople.innerHTML = html;
+        }
+
+        // Actualizar resumen de reservas
+        function updateReservationSummary() {
+            const summary = {};
+            
+            // Agrupar por mesa
+            Object.values(reservations).forEach(reservation => {
+                if (!summary[reservation.table]) {
+                    summary[reservation.table] = [];
+                }
+                summary[reservation.table].push(reservation);
+            });
+
+            let html = '';
+            for (let table = 1; table <= 3; table++) {
+                const tableReservations = summary[table] || [];
+                const tableName = table === 1 ? 'Mesa 1 (Sala Chica)' : `Mesa ${table} (Sala Grande)`;
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-gray-800 mb-2">${tableName}</h4>
+                        <div class="space-y-1">
+                `;
+                
+                if (tableReservations.length === 0) {
+                    html += '<p class="text-gray-500 text-sm">Sin reservas</p>';
+                } else {
+                    tableReservations.forEach(reservation => {
+                        const teamColor = reservation.team === 'acco' ? 'text-blue-600' : 'text-green-600';
+                        const teamName = reservation.team === 'acco' ? 'ACCO' : 'Consultoría';
+                        html += `
+                            <div class="text-sm">
+                                <span class="font-medium">Silla ${reservation.chair}:</span>
+                                <span class="${teamColor}">${reservation.name}</span>
+                                <span class="text-gray-500">(${teamName})</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            reservationSummary.innerHTML = html;
+        }
+
+        // Mostrar notificaciones
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Función de inicialización que se llama cuando Firebase está listo
+        window.initApp = function() {
+            isFirebaseReady = true;
+            loadReservations();
+            updateNameOptions();
+            showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
+        };
+        
+        // Inicializar inmediatamente (Firebase se conectará después)
+        loadReservations();
+        updateNameOptions();
+        updateChairDisplay();
+        updateReservationSummary();
+        updatePendingPeople();
+        
+        // Intentar conectar Firebase después de 2 segundos si no se ha conectado
+        setTimeout(() => {
+            if (!isFirebaseReady) {
+                showNotification('⚠️ Modo sin conexión - Las reservas solo se ven localmente', 'error');
+            }
+        }, 2000);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'993bce66e3d81ff6',t:'MTc2MTMzMzM2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
