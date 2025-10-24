@@ -297,15 +297,24 @@
             selectedName = e.target.value;
         });
 
-        clearAllBtn.addEventListener('click', () => {
-            reservations = {};
-            saveReservations();
-            updateChairDisplay();
-            updateReservationSummary();
-            updatePendingPeople();
-            updateNameOptions();
-            showNotification('Todas las reservas han sido eliminadas', 'success');
-        });
+clearAllBtn.addEventListener('click', () => {
+    // Abrir modal de login
+    const adminUser = prompt("Usuario admin:");
+    const adminPass = prompt("Contraseña admin:");
+
+    if (adminUser === 'user' && adminPass === '1234') {
+        // Solo admin puede limpiar
+        reservations = {};
+        saveReservations();
+        updateChairDisplay();
+        updateReservationSummary();
+        updatePendingPeople();
+        updateNameOptions();
+        showNotification('Todas las reservas han sido eliminadas por admin', 'success');
+    } else {
+        showNotification('Usuario o contraseña incorrecta. No tienes permisos.', 'error');
+    }
+});
 
         shareBtn.addEventListener('click', () => {
             const url = window.location.href;
