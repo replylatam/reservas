@@ -391,17 +391,12 @@
 
     clearAllBtn.addEventListener('click',()=>{
       if(currentUser!=='acco'){ return showNotification('Solo el usuario ACCO puede limpiar todas las reservas','error'); }
-      const adminUser = prompt('Usuario admin:');
-      const adminPass = prompt('Contraseña admin:');
-      if(adminUser!=='user' || adminPass!=='1234'){
-        return showNotification('Usuario o contraseña incorrecta. No tienes permisos.', 'error');
-      }
       const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
       if(!ok) return;
       reservations = {};
       saveReservations();
       updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-      showNotification('Todas las reservas fueron eliminadas por admin', 'success');
+      showNotification('Todas las reservas fueron eliminadas', 'success');
     });
 
     shareBtn.addEventListener('click',()=>{
@@ -739,6 +734,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
