@@ -389,23 +389,32 @@
 
     nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
 
-    clearAllBtn.addEventListener('click',()=>{
-      if(currentUser!=='acco') { return showNotification('Solo el usuario ACCO puede limpiar todas las reservas','error');
-      }
-        // NUEVO: validar admin
+  clearAllBtn.addEventListener('click', () => {
+  if (currentUser !== 'acco') {
+    showNotification('Solo el usuario ACCO puede limpiar todas las reservas', 'error');
+    return;
+  }
+
+  // 🔒 Validar admin
   const adminUser = prompt('Usuario admin:');
   const adminPass = prompt('Contraseña admin:');
   if (adminUser !== 'user' || adminPass !== '1234') {
     showNotification('Usuario o contraseña de admin incorrectos', 'error');
     return;
   }
-      const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
-      if(!ok) return;
-      reservations = {};
-      saveReservations();
-      updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-      showNotification('Todas las reservas fueron eliminadas', 'success');
-    });
+
+  const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
+  if (!ok) return;
+
+  // 🧹 Limpiar reservas
+  reservations = {};
+  saveReservations();
+  updateChairDisplay();
+  updateReservationSummary();
+  updatePendingPeople();
+  updateNameOptions();
+  showNotification('Todas las reservas fueron eliminadas', 'success');
+});
 
     shareBtn.addEventListener('click',()=>{
       const url=window.location.href;
@@ -742,6 +751,7 @@
   </script>
 </body>
 </html>
+
 
 
 
