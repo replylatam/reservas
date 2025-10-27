@@ -1,739 +1,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sistema de Reservas de Mesas</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Señal para saber cuándo el SDK modular de Firebase está listo -->
-  <script>
-    window.addEventListener("firebase-sdk-ready", () => {
-      if (typeof window.initFirebaseBridge === "function") {
-        window.initFirebaseBridge();
-      }
-    });
-  </script>
-
-  <!-- Firebase SDK (MÓDULO) -->
-  <script type="module">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reservas de Mesas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+<script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
-      apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
-      authDomain: "reservas-355df.firebaseapp.com",
-      databaseURL: "https://reservas-355df-default-rtdb.firebaseio.com",
-      projectId: "reservas-355df",
-      storageBucket: "reservas-355df.firebasestorage.app",
-      messagingSenderId: "105135950869",
-      appId: "1:105135950869:web:c2f1c4a15fbd23ea46121c",
-      measurementId: "G-FDF1XWZ7J5"
+        apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
+        authDomain: "reservas-355df.firebaseapp.com",
+        databaseURL: "https://reservas-355df-default-rtdb.firebaseio.com",
+        projectId: "reservas-355df",
+        storageBucket: "reservas-355df.firebasestorage.app",
+        messagingSenderId: "105135950869",
+        appId: "1:105135950869:web:c2f1c4a15fbd23ea46121c",
+        measurementId: "G-FDF1XWZ7J5"
     };
 
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // Exponer helpers para el script no-modular
+    // Hacer Firebase disponible globalmente
     window.firebaseDB = database;
     window.firebaseRef = ref;
     window.firebaseSet = set;
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
 
-    // Avisar que el SDK quedó listo
-    window.dispatchEvent(new Event("firebase-sdk-ready"));
-  </script>
+    // Una vez listo, lanzamos la app
+    window.initApp();
+</script>
 
-  <style>
-    body { box-sizing: border-box; }
-    .chair { transition: all 0.3s ease; cursor: pointer; }
-    .chair:hover { transform: scale(1.1); }
-    .table-container { position: relative; }
-    .divider { width: 2px; height: 200px; background: linear-gradient(to bottom, #e5e7eb, #9ca3af, #e5e7eb); margin: 0 2rem; border-radius: 1px; }
-  </style>
+    
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .chair {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .chair:hover {
+            transform: scale(1.1);
+        }
+        .table-container {
+            position: relative;
+        }
+        .divider {
+            width: 2px;
+            height: 200px;
+            background: linear-gradient(to bottom, #e5e7eb, #9ca3af, #e5e7eb);
+            margin: 0 2rem;
+            border-radius: 1px;
+        }
+    </style>
 </head>
 <body class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-  <!-- MODAL LOGIN (bloqueante) -->
-  <div id="loginModal" class="fixed inset-0 hidden items-center justify-center z-50">
-    <div class="absolute inset-0" style="background: rgba(0,0,0,0.5)"></div>
-    <div class="relative bg-white w-full max-w-sm mx-4 rounded-2xl shadow-2xl p-6">
-      <h2 class="text-2xl font-bold text-gray-800 mb-1 text-center">Ingresar</h2>
-      <p class="text-sm text-gray-500 mb-6 text-center">Usá tu usuario y contraseña para continuar</p>
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-          <input id="loginUser" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="acco / consultoria" autocomplete="username" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-          <input id="loginPass" type="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="••••••••" autocomplete="current-password" required />
-        </div>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium">Entrar</button>
-      </form>
-      <p id="loginError" class="mt-3 text-sm text-red-600 hidden">Usuario o contraseña incorrectos</p>
-      <div class="mt-4 text-xs text-gray-400 text-center">Usuarios válidos: acco / consultoria</div>
-    </div>
-  </div>
-
-  <!-- BARRA SUPERIOR DE SESIÓN -->
-  <div id="sessionBar" class="hidden max-w-7xl mx-auto -mt-4 mb-4">
-    <div class="flex items-center justify-between bg-white/70 backdrop-blur rounded-xl p-3 shadow">
-      <div class="text-sm text-gray-700">Conectado como <span id="whoami" class="font-semibold"></span></div>
-      <div class="flex items-center gap-3">
-        <span id="teamPill" class="px-2.5 py-1 rounded-full text-xs font-semibold"></span>
-        <button id="logoutBtn" class="text-sm px-3 py-1.5 rounded-md border hover:bg-gray-50">Salir</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto">
-    <header class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Reservas</h1>
-      <div class="flex justify-center gap-8 mb-6">
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-blue-500 rounded"></div>
-          <span class="text-sm font-medium">Equipo ACCO</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-green-500 rounded"></div>
-          <span class="text-sm font-medium">Equipo Consultoría</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-gray-300 rounded border-2 border-gray-400"></div>
-          <span class="text-sm font-medium">Disponible</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div id="connectionStatus" class="w-3 h-3 bg-red-400 rounded-full"></div>
-          <span class="text-sm font-medium text-gray-600">Sistema</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- Banner de ciclo (sesión) -->
-    <div id="sessionBanner" class="max-w-7xl mx-auto mb-6 hidden"></div>
-
-    <main>
-      <div class="flex justify-center items-center gap-8 mb-8">
-        <!-- Sala Chica -->
-        <div class="flex flex-col items-center">
-          <h2 class="text-xl font-semibold text-gray-700 mb-6">Sala Chica</h2>
-          <div class="table-container relative">
-            <div class="w-24 h-40 bg-amber-200 border-4 border-amber-300 rounded-lg shadow-lg flex items-center justify-center">
-              <span class="text-amber-800 font-bold transform -rotate-90">MESA 1</span>
-            </div>
-            <!-- Sillas -->
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="1" style="left: -32px; top: 10%;">1</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="2" style="left: -32px; top: 30%;">2</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="3" style="left: -32px; top: 50%;">3</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="4" style="left: -32px; top: 70%;">4</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="5" style="right: -32px; top: 10%;">5</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="6" style="right: -32px; top: 30%;">6</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="7" style="right: -32px; top: 50%;">7</div>
-            <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="8" style="right: -32px; top: 70%;">8</div>
-          </div>
-        </div>
-
-        <!-- Línea divisoria -->
-        <div class="divider"></div>
-
-        <!-- Sala Grande -->
-        <div class="flex flex-col items-center">
-          <h2 class="text-xl font-semibold text-gray-700 mb-6">Sala Grande</h2>
-          <div class="grid grid-cols-2 gap-20">
-            <!-- Mesa 2 -->
-            <div class="flex flex-col items-center">
-              <div class="table-container relative">
-                <div class="w-24 h-40 bg-emerald-200 border-4 border-emerald-300 rounded-lg shadow-lg flex items-center justify-center">
-                  <span class="text-emerald-800 font-bold transform -rotate-90">MESA 2</span>
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Reservas</h1>
+            <div class="flex justify-center gap-8 mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                    <span class="text-sm font-medium">Equipo ACCO</span>
                 </div>
-                <!-- Sillas -->
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="9" style="left: -32px; top: 10%;">9</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="10" style="left: -32px; top: 30%;">10</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="11" style="left: -32px; top: 50%;">11</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="12" style="left: -32px; top: 70%;">12</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="13" style="right: -32px; top: 10%;">13</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="14" style="right: -32px; top: 30%;">14</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="15" style="right: -32px; top: 50%;">15</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="16" style="right: -32px; top: 70%;">16</div>
-              </div>
-            </div>
-
-            <!-- Mesa 3 -->
-            <div class="flex flex-col items-center">
-              <div class="table-container relative">
-                <div class="w-24 h-40 bg-purple-200 border-4 border-purple-300 rounded-lg shadow-lg flex items-center justify-center">
-                  <span class="text-purple-800 font-bold transform -rotate-90">MESA 3</span>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-green-500 rounded"></div>
+                    <span class="text-sm font-medium">Equipo Consultoría</span>
                 </div>
-                <!-- Sillas -->
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="17" style="left: -32px; top: 10%;">17</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="18" style="left: -32px; top: 30%;">18</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="19" style="left: -32px; top: 50%;">19</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="20" style="left: -32px; top: 70%;">20</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="21" style="right: -32px; top: 10%;">21</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="22" style="right: -32px; top: 30%;">22</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="23" style="right: -32px; top: 50%;">23</div>
-                <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="3" data-chair="24" style="right: -32px; top: 70%;">24</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-gray-300 rounded border-2 border-gray-400"></div>
+                    <span class="text-sm font-medium">Disponible</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="connectionStatus" class="w-
 
-      <!-- Panel de Control -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel de Reservas</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label for="teamSelect" class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Equipo:</label>
-            <select id="teamSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="acco">Equipo ACCO</option>
-              <option value="consultoria">Equipo Consultoría</option>
-            </select>
-          </div>
-          <div>
-            <label for="nameSelect" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Reserva:</label>
-            <select id="nameSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Selecciona un nombre</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-4 flex gap-4">
-          <button id="clearAllBtn" class="hidden bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Limpiar Todas las Reservas
-          </button>
-          <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            📱 Compartir Link
-          </button>
-        </div>
-      </div>
 
-      <!-- Instrucciones de Uso -->
-      <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
-        <h3 class="text-lg font-semibold text-green-800 mb-2">🚀 Sistema en Tiempo Real Activado:</h3>
-        <div class="text-green-700 space-y-2">
-          <p><strong>✅ Base de datos real:</strong> Todas las reservas se sincronizan automáticamente</p>
-          <p><strong>📱 Multi-dispositivo:</strong> Funciona desde cualquier celular, tablet o computadora</p>
-          <p><strong>⚡ Tiempo real:</strong> Cuando alguien reserva, todos lo ven al instante</p>
-          <p><strong>🔗 Link para compartir:</strong> <code id="currentUrl" class="bg-green-100 px-2 py-1 rounded text-sm"></code></p>
-        </div>
-      </div>
-
-      <!-- Personas Pendientes -->
-      <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Personas Pendientes de Reservar</h3>
-        <div id="pendingPeople" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-      </div>
-
-      <!-- Resumen de Reservas -->
-      <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
-        <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    let reservations = {};
-    let prevReservations = {}; // última sesión (para “no repetir asiento”)
-
-    let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
-    let selectedName = '';
-    let currentUser = null; // 'acco' | 'consultoria'
-
-    // Nombres por equipo
-    const teamMembers = {
-      acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
-      consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
-    };
-
-    // Refs DOM
-    const teamSelect = document.getElementById('teamSelect');
-    const nameSelect = document.getElementById('nameSelect');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const shareBtn = document.getElementById('shareBtn');
-    const chairs = document.querySelectorAll('.chair');
-    const reservationSummary = document.getElementById('reservationSummary');
-    const pendingPeople = document.getElementById('pendingPeople');
-    const currentUrl = document.getElementById('currentUrl');
-
-    const loginModal = document.getElementById('loginModal');
-    const loginForm  = document.getElementById('loginForm');
-    const loginUser  = document.getElementById('loginUser');
-    const loginPass  = document.getElementById('loginPass');
-    const loginError = document.getElementById('loginError');
-
-    const sessionBar = document.getElementById('sessionBar');
-    const whoami     = document.getElementById('whoami');
-    const teamPill   = document.getElementById('teamPill');
-    const logoutBtn  = document.getElementById('logoutBtn');
-    const connectionStatus = document.getElementById('connectionStatus');
-    const sessionBanner = document.getElementById('sessionBanner');
-
-    // Mostrar URL actual
-    currentUrl.textContent = window.location.href;
-
-    // ===== Ciclo Martes/Jueves =====
-    function z(n){ return String(n).padStart(2,'0'); }
-    function formatYMD(d){ return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
-    function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
-    function nextWeekday(targetDow){ // 0=Dom..6=Sáb
-      const now=new Date(); const dow=now.getDay();
-      let delta=(targetDow-dow+7)%7; if(delta===0) delta=7; // próximo, no hoy
-      return addDays(now, delta);
-    }
-    function prevWeekday(targetDow){
-      const now=new Date(); const dow=now.getDay();
-      let delta=(dow-targetDow+7)%7; if(delta===0) delta=7; // anterior, no hoy
-      return addDays(now, -delta);
-    }
-    function getSessionInfo(){
-      const now=new Date(); const dow=now.getDay();
-      let canReserve=false, nextS, prevS, label;
-      if (dow===1){ // Lunes => reservo Martes, comparo con Jueves pasado
-        nextS=nextWeekday(2); prevS=prevWeekday(4); label='Reservando para MARTES'; canReserve=true;
-      } else if (dow===3){ // Miércoles => reservo Jueves, comparo con Martes de la misma semana
-        nextS=nextWeekday(4); prevS=prevWeekday(2); label='Reservando para JUEVES'; canReserve=true;
-      } else {
-        if (dow<2) { nextS=nextWeekday(2); prevS=prevWeekday(4); label='Próximo MARTES (solo lectura)'; }
-        else if (dow<4) { nextS=nextWeekday(4); prevS=prevWeekday(2); label='Próximo JUEVES (solo lectura)'; }
-        else { nextS=nextWeekday(2); prevS=prevWeekday(4); label='Próximo MARTES (solo lectura)'; }
-      }
-      return { canReserve, nextS, prevS, nextSessionDate: formatYMD(nextS), prevSessionDate: formatYMD(prevS), label };
-    }
-    let SESSION = getSessionInfo();
-
-    function renderSessionBanner(){
-      sessionBanner.classList.remove('hidden');
-      const nice = (d)=> d.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'short',day:'numeric'});
-      sessionBanner.innerHTML = `
-        <div class="bg-white/70 backdrop-blur p-3 rounded-xl shadow text-center">
-          <div class="text-sm font-semibold">${SESSION.label}</div>
-          <div class="text-xs text-gray-600">Reservas para: <strong>${nice(SESSION.nextS)}</strong> · Comparando con: <strong>${nice(SESSION.prevS)}</strong></div>
-        </div>`;
-    }
-
-    // ===== Login & permisos =====
-    function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
-    function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow=''; }
-
-    function updatePermissionsUI(){
-      if(currentUser==='acco'){ clearAllBtn.classList.remove('hidden'); clearAllBtn.disabled=false; }
-      else { clearAllBtn.classList.add('hidden'); clearAllBtn.disabled=true; }
-    }
-
-    function setSession(user){
-      currentUser = user; // 'acco' | 'consultoria'
-      localStorage.setItem('loggedUser', user);
-      selectedTeam = user;
-      localStorage.setItem('selectedTeam', selectedTeam);
-      teamSelect.value = user;
-      teamSelect.setAttribute('disabled','disabled');
-      teamSelect.classList.add('opacity-70','cursor-not-allowed');
-
-      sessionBar.classList.remove('hidden');
-      whoami.textContent = user;
-      if(user==='acco'){ teamPill.textContent='ACCO'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700'; }
-      else { teamPill.textContent='Consultoría'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'; }
-
-      updateNameOptions();
-      updatePermissionsUI();
-      closeLoginModal();
-      showNotification('Sesión iniciada','success');
-    }
-
-    function tryAutoLogin(){
-      const saved=localStorage.getItem('loggedUser');
-      if(saved==='acco' || saved==='consultoria'){ setSession(saved); return true; }
-      return false;
-    }
-
-    loginForm.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      loginError.classList.add('hidden');
-      const u = loginUser.value.trim().toLowerCase();
-      const p = loginPass.value;
-      const okAcco = (u==='acco' && p==='botaco1234');
-      const okCons = (u==='consultoria' && p==='consultor1234');
-      if(okAcco) return setSession('acco');
-      if(okCons) return setSession('consultoria');
-      loginError.classList.remove('hidden');
-    });
-
-    logoutBtn.addEventListener('click',()=>{
-      localStorage.removeItem('loggedUser');
-      showNotification('Sesión cerrada');
-      location.reload();
-    });
-
-    // ===== Reglas / Helpers =====
-    function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
-
-    function updateNameOptions(){
-      const members = teamMembers[selectedTeam];
-      nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
-      members.forEach(member=>{
-        const option = document.createElement('option');
-        option.value = member;
-        option.textContent = hasExistingReservation(member) ? `${member} (Tiene reserva - clic para cancelar)` : member;
-        nameSelect.appendChild(option);
-      });
-      selectedName = '';
-    }
-
-    teamSelect.addEventListener('change',(e)=>{
-      selectedTeam = e.target.value;
-      localStorage.setItem('selectedTeam', selectedTeam);
-      updateNameOptions();
-    });
-
-    nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
-
-    clearAllBtn.addEventListener('click',()=>{
-      if(currentUser!=='acco'){ return showNotification('Solo el usuario ACCO puede limpiar todas las reservas','error'); }
-      const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
-      if(!ok) return;
-      reservations = {};
-      saveReservations();
-      updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-      showNotification('Todas las reservas fueron eliminadas', 'success');
-    });
-
-    shareBtn.addEventListener('click',()=>{
-      const url=window.location.href;
-      if(navigator.share){ navigator.share({title:'Sistema de Reservas de Mesas', text:'Entra para hacer tu reserva de mesa', url}); }
-      else { navigator.clipboard.writeText(url).then(()=>showNotification('Link copiado 📋','success')); }
-    });
-
-    // ===== Firebase (por sesión) =====
-    let isFirebaseReady = false;
-
-    function updateConnectionStatus(connected){
-      connectionStatus.className = 'w-3 h-3 rounded-full ' + (connected ? 'bg-green-400 animate-pulse' : 'bg-red-400');
-    }
-
-    function saveReservations(){
-      const path = `reservations/${SESSION.nextSessionDate}`;
-      if(!isFirebaseReady){
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
-        showNotification('Guardado local (sin conexión)', 'error');
-        return;
-      }
-      try{
-        const reservationsRef = window.firebaseRef(window.firebaseDB, path);
-        window.firebaseSet(reservationsRef, {
-          data: reservations,
-          lastUpdate: new Date().toISOString(),
-          timestamp: Date.now()
-        }).then(()=>{
-          updateConnectionStatus(true);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
-          showNotification('💾 Guardado en tiempo real', 'success');
-        }).catch(()=>{
-          updateConnectionStatus(false);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
-          showNotification('Error de conexión - Guardado local', 'error');
-        });
-      }catch{
-        updateConnectionStatus(false);
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
-        showNotification('Error al guardar - Modo local', 'error');
-      }
-    }
-
-    function loadReservations(){
-      const nextPath = `reservations/${SESSION.nextSessionDate}`;
-      const prevPath = `reservations/${SESSION.prevSessionDate}`;
-
-      if(!isFirebaseReady){
-        reservations     = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
-        prevReservations = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
-        updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
-        return;
-      }
-      try{
-        const nextRef = window.firebaseRef(window.firebaseDB, nextPath);
-        const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
-
-        window.firebaseOnValue(nextRef, (snapshot)=>{
-          const data = snapshot.val();
-          reservations = (data && data.data) ? data.data : {};
-          updateConnectionStatus(true);
-          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
-        }, ()=>{
-          updateConnectionStatus(false);
-          reservations = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
-          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-        });
-
-        window.firebaseOnValue(prevRef, (snapshot)=>{
-          const data = snapshot.val();
-          prevReservations = (data && data.data) ? data.data : {};
-          localStorage.setItem(`backup_${SESSION.prevSessionDate}`, JSON.stringify(prevReservations));
-        }, ()=>{});
-      }catch{
-        updateConnectionStatus(false);
-        reservations     = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
-        prevReservations = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
-        updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-      }
-    }
-
-    // ===== Reglas de asiento (las de tu versión + “no repetir” consecutivo) =====
-    function canSitInChair(table, chairNum, team, personName) {
-      const chairNumInt = parseInt(chairNum);
-      let adjacentChairs = [];
-
-      if (table === '1') {
-        if (chairNumInt >= 1 && chairNumInt <= 4) { if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 5 && chairNumInt <= 8) { if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-      } else if (table === '2') {
-        if (chairNumInt >= 9 && chairNumInt <= 12) { if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 13 && chairNumInt <= 16) { if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-      } else if (table === '3') {
-        if (chairNumInt >= 17 && chairNumInt <= 20) { if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 21 && chairNumInt <= 24) { if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-      }
-
-      // Consultoría no puede estar al lado (excepto Jose)
-      if (team === 'consultoria' && personName !== 'Jose') {
-        for (let adjacentChairId of adjacentChairs) {
-          if (reservations[adjacentChairId] && reservations[adjacentChairId].team === 'consultoria') return false;
-        }
-      }
-
-      // ACCO máximo 2 consecutivas
-      if (team === 'acco') return !wouldCreateThreeConsecutiveACCO(table, chairNumInt);
-      return true;
-    }
-
-    function wouldCreateThreeConsecutiveACCO(table, chairNum) {
-      let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
-      let tempReservations = { ...reservations };
-      tempReservations[`${table}-${chairNum}`] = { team: 'acco' };
-      let leftSide = chairRange.slice(0, 4);
-      if (hasThreeConsecutiveACCO(table, leftSide, tempReservations)) return true;
-      let rightSide = chairRange.slice(4, 8);
-      if (hasThreeConsecutiveACCO(table, rightSide, tempReservations)) return true;
-      return false;
-    }
-
-    function hasThreeConsecutiveACCO(table, sideChairs, tempReservations) {
-      for (let i = 0; i <= sideChairs.length - 3; i++) {
-        let consecutiveACCO = 0;
-        for (let j = i; j < i + 3; j++) {
-          const chairId = `${table}-${sideChairs[j]}`;
-          if (tempReservations[chairId] && tempReservations[chairId].team === 'acco') consecutiveACCO++; else break;
-        }
-        if (consecutiveACCO >= 3) return true;
-      }
-      return false;
-    }
-
-    function canMaintainMixedTeams(table, team) {
-      let accoCount = 0, consultoriaCount = 0, totalInTable = 0;
-      let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
-
-      chairRange.forEach(chairNum => {
-        const chairId = `${table}-${chairNum}`;
-        if (reservations[chairId]) { totalInTable++; reservations[chairId].team === 'acco' ? accoCount++ : consultoriaCount++; }
-      });
-
-      if (totalInTable === 0) return true;
-      if (team === 'consultoria' && consultoriaCount >= 3) return false;
-
-      if (team === 'acco') {
-        let mesasCon5ACCO = 0;
-        for (let t = 1; t <= 3; t++) {
-          let accoEnMesa = 0;
-          let rango = t===1?[1,2,3,4,5,6,7,8]:t===2?[9,10,11,12,13,14,15,16]:[17,18,19,20,21,22,23,24];
-          rango.forEach(n => { const id = `${t}-${n}`; if (reservations[id]?.team === 'acco') accoEnMesa++; });
-          if (accoEnMesa >= 5) mesasCon5ACCO++;
-        }
-        if (mesasCon5ACCO >= 1 && accoCount >= 4) return false;
-        if (mesasCon5ACCO === 0 && accoCount >= 5) return false;
-        if (accoCount >= 5) return false;
-      }
-
-      if (totalInTable === 7) {
-        if (team === 'acco' && consultoriaCount === 0) return false;
-        if (team === 'consultoria' && accoCount === 0) return false;
-        return true;
-      }
-      return true;
-    }
-
-    function canPersonSitAtTable(name, table) {
-      const restrictedPeople = ['Alan', 'Jose', 'Laura'];
-      if (!restrictedPeople.includes(name)) return true;
-      for (let reservationId in reservations) {
-        const r = reservations[reservationId];
-        if (r.table === table && restrictedPeople.includes(r.name) && r.name !== name) return false;
-      }
-      return true;
-    }
-
-    // Click en sillas
-    chairs.forEach(chair => {
-      chair.addEventListener('click', () => {
-        if (!currentUser) { openLoginModal(); return; }
-        if (!SESSION.canReserve) { showNotification('Las reservas se abren los LUNES y MIÉRCOLES', 'error'); return; }
-
-        const table = chair.dataset.table;
-        const chairNum = chair.dataset.chair;
-        const chairId = `${table}-${chairNum}`;
-
-        // Ya reservada
-        if (reservations[chairId]) {
-          const r = reservations[chairId];
-          if (selectedName && selectedName === r.name) {
-            delete reservations[chairId];
-            saveReservations();
-            updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-            showNotification(`Reserva cancelada para ${selectedName}`, 'success');
-          } else {
-            showNotification(`Silla ya reservada por ${r.name}. Para cancelar, seleccioná "${r.name}" en el panel.`, 'error');
-          }
-          return;
-        }
-
-        // Validaciones
-        if (!selectedName) { showNotification('Seleccioná un nombre', 'error'); nameSelect.focus(); return; }
-        if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
-        if (!canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
-        if (!canMaintainMixedTeams(table, selectedTeam)) {
-          if (selectedTeam === 'consultoria') showNotification('Máximo 3 de Consultoría por mesa.', 'error');
-          else {
-            let mesasCon5ACCO = 0;
-            for (let t = 1; t <= 3; t++) {
-              let accoEnMesa = 0; let rango = t===1?[1,2,3,4,5,6,7,8]:t===2?[9,10,11,12,13,14,15,16]:[17,18,19,20,21,22,23,24];
-              rango.forEach(n => { const id = `${t}-${n}`; if (reservations[id]?.team === 'acco') accoEnMesa++; });
-              if (accoEnMesa >= 5) mesasCon5ACCO++;
-            }
-            showNotification(mesasCon5ACCO >= 1 ? 'Solo una mesa puede tener 5 de ACCO.' : 'Máximo 5 de ACCO por mesa.', 'error');
-          }
-          return;
-        }
-        if (!canSitInChair(table, chairNum, selectedTeam, selectedName)) {
-          showNotification(selectedTeam === 'consultoria' ? 'Consultoría no puede sentarse junto a otra persona del mismo equipo (excepto Jose).' : 'Máximo 2 ACCO consecutivas.', 'error');
-          return;
-        }
-
-        // No repetir asiento consecutivo
-        const prevSeatId = Object.entries(prevReservations).find(([,r])=> r.name===selectedName)?.[0];
-        if (prevSeatId === chairId) {
-          showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
-          return;
-        }
-
-        // Hacer reserva
-        reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
-        saveReservations();
-        showNotification(`Silla reservada para ${selectedName}`, 'success');
-        updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-      });
-    });
-
-    // UI
-    function updateChairDisplay(){
-      chairs.forEach(chair=>{
-        const table = chair.dataset.table;
-        const num = chair.dataset.chair;
-        const id  = `${table}-${num}`;
-
-        if(reservations[id]){
-          const reservedName = reservations[id].name;
-          const special = ['Laura','Alan','Jose'];
-          if (special.includes(reservedName)) {
-            chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-red-500').replace(/border-\w+-\d+/, 'border-red-600').replace(/text-\w+-\d+/, 'text-white');
-          } else {
-            const t = reservations[id].team;
-            if (t==='acco') chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-blue-500').replace(/border-\w+-\d+/, 'border-blue-600').replace(/text-\w+-\d+/, 'text-white');
-            else chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-green-500').replace(/border-\w+-\d+/, 'border-green-600').replace(/text-\w+-\d+/, 'text-white');
-          }
-          chair.style.cursor='not-allowed';
-        } else {
-          chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-gray-300').replace(/border-\w+-\d+/, 'border-gray-400').replace(/text-\w+/, 'text-gray-700');
-          chair.style.cursor='pointer';
-        }
-      });
-    }
-
-    function updatePendingPeople(){
-      const reservedNames = Object.values(reservations).map(r => r.name);
-      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n));
-      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n));
-
-      let html = '';
-      html += `
-        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-          <h4 class="font-semibold text-blue-800 mb-3 flex items-center"><div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>Equipo ACCO (${pendingACCO.length} pendientes)</h4>
-          <div class="space-y-1">${pendingACCO.length? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
-        </div>`;
-      html += `
-        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-          <h4 class="font-semibold text-green-800 mb-3 flex items-center"><div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>Equipo Consultoría (${pendingConsultoria.length} pendientes)</h4>
-          <div class="space-y-1">${pendingConsultoria.length? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
-        </div>`;
-      pendingPeople.innerHTML = html;
-    }
-
-    function updateReservationSummary(){
-      const summary = {};
-      Object.values(reservations).forEach(r => {
-        if (!summary[r.table]) summary[r.table] = [];
-        summary[r.table].push(r);
-      });
-
-      let html = '';
-      for (let table = 1; table <= 3; table++) {
-        const tableReservations = summary[table] || [];
-        const tableName = table === 1 ? 'Mesa 1 (Sala Chica)' : `Mesa ${table} (Sala Grande)`;
-        html += `
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-800 mb-2">${tableName}</h4>
-            <div class="space-y-1">`;
-        if (!tableReservations.length) html += '<p class="text-gray-500 text-sm">Sin reservas</p>';
-        else html += tableReservations.map(r => `
-            <div class="text-sm">
-              <span class="font-medium">Silla ${r.chair}:</span>
-              <span class="${r.team==='acco'?'text-blue-600':'text-green-600'}">${r.name}</span>
-              <span class="text-gray-500">(${r.team==='acco'?'ACCO':'Consultoría'})</span>
-            </div>`).join('');
-        html += `
-            </div>
-            <div class="text-xs text-gray-500 mt-3">Sesión: ${SESSION.nextSessionDate}</div>
-          </div>`;
-      }
-      reservationSummary.innerHTML = html;
-    }
-
-    function showNotification(message, type='success'){
-      const n = document.createElement('div');
-      n.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${type==='success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-      n.textContent = message;
-      document.body.appendChild(n);
-      setTimeout(()=>{ n.style.opacity='0'; setTimeout(()=>document.body.removeChild(n), 300); }, 2500);
-    }
-
-    // Puente: se llama cuando el SDK modular avisa que está listo
-    window.initFirebaseBridge = function(){
-      isFirebaseReady = true;
-      loadReservations();
-      updateNameOptions();
-      showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
-    };
-
-    // Boot local inmediato, por si Firebase tarda
-    renderSessionBanner();
-    loadReservations(); updateNameOptions(); updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
-
-    // Forzar login al cargar (o autologin)
-    if (!tryAutoLogin()) { openLoginModal(); }
-  </script>
-</body>
-</html>
 
 
 
