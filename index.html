@@ -390,7 +390,15 @@
     nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
 
     clearAllBtn.addEventListener('click',()=>{
-      if(currentUser!=='acco'){ return showNotification('Solo el usuario ACCO puede limpiar todas las reservas','error'); }
+      if(currentUser!=='acco') { return showNotification('Solo el usuario ACCO puede limpiar todas las reservas','error');
+      }
+        // NUEVO: validar admin
+  const adminUser = prompt('Usuario admin:');
+  const adminPass = prompt('Contraseña admin:');
+  if (adminUser !== 'user' || adminPass !== '1234') {
+    showNotification('Usuario o contraseña de admin incorrectos', 'error');
+    return;
+  }
       const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
       if(!ok) return;
       reservations = {};
@@ -734,6 +742,7 @@
   </script>
 </body>
 </html>
+
 
 
 
