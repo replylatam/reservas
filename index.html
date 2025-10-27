@@ -581,15 +581,32 @@
       return true;
     }
 
-    function canPersonSitAtTable(name, table) {
-      const restrictedPeople = ['Alan', 'Jose', 'Laura'];
-      if (!restrictedPeople.includes(name)) return true;
-      for (let reservationId in reservations) {
-        const r = reservations[reservationId];
-        if (r.table === table && restrictedPeople.includes(r.name) && r.name !== name) return false;
-      }
-      return true;
-    }
+function canPersonSitAtTable(name, table) {
+  const restrictedPeople = ['Alan', 'Jose', 'Laura'];
+  if (!restrictedPeople.includes(name)) return true;
+  for (let reservationId in reservations) {
+    const r = reservations[reservationId];
+    if (r.table === table && restrictedPeople.includes(r.name) && r.name !== name) return false;
+  }
+  return true;
+}
+
+// 🔁 Rotación obligatoria 1→2→3 para Alan, Jose y Laura entre sesiones consecutivas
+function checkRotationForVIP(name, targetTable){
+  const vip = ['Alan','Jose','Laura'];
+  if (!vip.includes(name)) return { allowed: true };
+
+  // Buscar la mesa de la sesión anterior para esta persona
+  const prevEntry = Object.entries(prevReservations).find(([, r]) => r.name === name);
+  if (!prevEntry) return { allowed: true }; // si no tiene histórico, no forzamos inicio
+
+  const prevTable = parseInt(prevEntry[1].table, 10); // '1'|'2'|'3' → 1|2|3
+  const expected = (prevTable % 3) + 1;               // 1→2, 2→3, 3→1
+  const ok = (parseInt(targetTable, 10) === expected);
+
+  return { allowed: ok, expected };
+}
+
 
     // Click en sillas
     chairs.forEach(chair => {
@@ -643,6 +660,14 @@
           showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
           return;
         }
+
+        // Rotación 1→2→3 para Alan/Jose/Laura
+const rot = checkRotationForVIP(selectedName, table);
+if (!rot.allowed) {
+  showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
+  return;
+}
+
 
         // Hacer reserva
         reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
@@ -751,6 +776,7 @@
   </script>
 </body>
 </html>
+
 
 
 
