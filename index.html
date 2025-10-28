@@ -18,7 +18,7 @@
   <!-- Firebase SDK (MÓDULO) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
@@ -35,11 +35,12 @@
     const database = getDatabase(app);
 
     // Exponer helpers para el script no-modular
-    window.firebaseDB = database;
-    window.firebaseRef = ref;
-    window.firebaseSet = set;
-    window.firebaseOnValue = onValue;
-    window.firebaseRemove = remove;
+window.firebaseDB = database;
+window.firebaseRef = ref;
+window.firebaseSet = set;
+window.firebaseOnValue = onValue;
+window.firebaseRemove = remove;
+window.firebaseGet = get;
 
     // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
@@ -204,8 +205,11 @@
           </button>
           <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
             📱 Compartir Link
-          </button>
-        </div>
+              </button>
+            <button id="historyBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+        📜 Histórico de asientos
+            </button>
+          </div>
       </div>
 
       <!-- Instrucciones de Uso -->
@@ -269,6 +273,138 @@
     const logoutBtn  = document.getElementById('logoutBtn');
     const connectionStatus = document.getElementById('connectionStatus');
     const sessionBanner = document.getElementById('sessionBanner');
+    const shareBtn = document.getElementById('shareBtn');
+// 🔹 REFS HISTÓRICO
+const historyBtn     = document.getElementById('historyBtn');
+const historyModal   = document.getElementById('historyModal');
+const historyClose   = document.getElementById('historyClose');
+const historyPerson  = document.getElementById('historyPerson');
+const historyList    = document.getElementById('historyList');
+const historyRefresh = document.getElementById('historyRefresh');
+
+// Abrir/cerrar modal
+function openHistory(){ historyModal.classList.remove('hidden'); historyModal.classList.add('flex'); document.body.style.overflow='hidden'; }
+function closeHistory(){ historyModal.classList.add('hidden'); historyModal.classList.remove('flex'); document.body.style.overflow=''; }
+
+historyBtn?.addEventListener('click', async ()=>{
+  await populateHistoryPeople();
+  await renderHistory(); // sin filtro
+  openHistory();
+});
+historyClose?.addEventListener('click', closeHistory);
+historyRefresh?.addEventListener('click', async ()=>{ await renderHistory(historyPerson.value); });
+historyPerson?.addEventListener('change', async ()=>{ await renderHistory(historyPerson.value); });
+
+// Obtener todas las sesiones desde Firebase; si no hay, usar backups locales
+async function fetchAllSessions(){
+  try{
+    if (window.firebaseDB && window.firebaseRef && window.firebaseGet){
+      const rootRef = window.firebaseRef(window.firebaseDB, 'reservations');
+      const snap = await window.firebaseGet(rootRef);
+      if (snap.exists()) return snap.val();
+    }
+  }catch(e){ /* fallback abajo */ }
+
+  const local = {};
+  Object.keys(localStorage).forEach(k=>{
+    const m = k.match(/^backup_(\d{4}-\d{2}-\d{2})$/);
+    if(m){
+      const date = m[1];
+      local[date] = { data: JSON.parse(localStorage.getItem(k) || '{}') };
+    }
+  });
+  return local;
+}
+
+// Llenar selector de personas
+async function populateHistoryPeople(){
+  const all = [...teamMembers.acco, ...teamMembers.consultoria].sort((a,b)=> a.localeCompare(b));
+  historyPerson.innerHTML = `<option value="">— Ver todo —</option>` + all.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+
+// Render histórico (general o por persona)
+async function renderHistory(personFilter=''){
+  historyList.innerHTML = `<div class="text-sm text-gray-500">Cargando histórico...</div>`;
+  const all = await fetchAllSessions();
+  const dates = Object.keys(all).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort(); // asc
+  if(!dates.length){ historyList.innerHTML = `<div class="text-sm text-gray-500">No hay sesiones guardadas.</div>`; return; }
+
+  const fmt = (d)=> new Date(d+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'short',day:'numeric'});
+
+  if(personFilter){
+    const rows = [];
+    for(const d of dates){
+      const data = all[d]?.data || {};
+      for(const [seatId, r] of Object.entries(data)){
+        if(r?.name === personFilter){
+          rows.push({ date: d, table: r.table, chair: r.chair, team: r.team });
+        }
+      }
+    }
+    if(!rows.length){
+      historyList.innerHTML = `<div class="text-sm text-gray-600">No hay registros para <strong>${personFilter}</strong>.</div>`;
+      return;
+    }
+    historyList.innerHTML = `
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-white">
+            <tr>
+              <th class="text-left px-3 py-2 border-b">Fecha</th>
+              <th class="text-left px-3 py-2 border-b">Mesa</th>
+              <th class="text-left px-3 py-2 border-b">Silla</th>
+              <th class="text-left px-3 py-2 border-b">Equipo</th>
+            </tr>
+          </thead>
+          <tbody class="bg-gray-50">
+            ${rows.sort((a,b)=> a.date.localeCompare(b.date)).map(r=>`
+              <tr class="border-b">
+                <td class="px-3 py-2">${fmt(r.date)}</td>
+                <td class="px-3 py-2">Mesa ${r.table}</td>
+                <td class="px-3 py-2">${r.chair}</td>
+                <td class="px-3 py-2">${r.team==='acco'?'ACCO':'Consultoría'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    return;
+  }
+
+  // Vista general por fechas
+  const items = dates.slice().reverse().map(d=>{
+    const data = all[d]?.data || {};
+    const total = Object.keys(data).length;
+    let acco=0, cons=0;
+    Object.values(data).forEach(r=>{ if(r?.team==='acco') acco++; else if(r?.team==='consultoria') cons++; });
+    return `
+      <details class="mb-2 bg-white rounded-lg shadow-sm">
+        <summary class="cursor-pointer list-none px-3 py-2 flex items-center justify-between">
+          <span class="text-sm">
+            <span class="font-semibold">${fmt(d)}</span>
+            <span class="text-gray-500 ml-2">(${total} reservas · ACCO ${acco} · Cons ${cons})</span>
+          </span>
+          <span class="text-xs text-gray-500">clic para ver detalle</span>
+        </summary>
+        <div class="p-3 border-t bg-gray-50">
+          ${Object.entries(data).length ? `
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              ${Object.entries(data).map(([seatId, r])=>`
+                <div class="text-sm bg-white border rounded p-2">
+                  <div><span class="font-medium">${r.name}</span> <span class="text-gray-500">(${r.team==='acco'?'ACCO':'Consultoría'})</span></div>
+                  <div class="text-gray-600">Mesa ${r.table} · Silla ${r.chair}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `<div class="text-sm text-gray-500">Sin datos</div>`}
+        </div>
+      </details>
+    `;
+  }).join('');
+
+  historyList.innerHTML = items;
+}
 
     // Mostrar URL actual
     currentUrl.textContent = window.location.href;
@@ -774,19 +910,32 @@ if (!rot.allowed) {
     // Forzar login al cargar (o autologin)
     if (!tryAutoLogin()) { openLoginModal(); }
   </script>
+  <!-- 🔹 MODAL HISTÓRICO -->
+<div id="historyModal" class="fixed inset-0 hidden items-center justify-center z-50">
+  <div class="absolute inset-0 bg-black/50"></div>
+  <div class="relative bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-bold text-gray-800">Histórico de asientos</h3>
+      <button id="historyClose" class="px-3 py-1.5 rounded-md border hover:bg-gray-50">Cerrar</button>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Filtrar por persona (opcional)</label>
+        <select id="historyPerson" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">— Ver todo —</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button id="historyRefresh" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium border">
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div id="historyList" class="max-h-[60vh] overflow-auto border rounded-lg p-3 bg-gray-50"></div>
+    <p class="mt-3 text-xs text-gray-500">Se muestran sesiones guardadas en el servidor; si estás sin conexión se intentará usar respaldos locales.</p>
+  </div>
+</div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
