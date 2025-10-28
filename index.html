@@ -18,7 +18,7 @@
   <!-- Firebase SDK (MÓDULO) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+    import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
@@ -40,6 +40,7 @@
     window.firebaseSet = set;
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
+    window.firebaseGet = get;
 
     // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
@@ -764,6 +765,7 @@ if (!rot.allowed) {
       isFirebaseReady = true;
       loadReservations();
       updateNameOptions();
+      console.log("Firebase está listo"); // Verifica que Firebase se ha cargado
       showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
     };
 
@@ -850,5 +852,6 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
