@@ -318,30 +318,50 @@
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
     function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow=''; }
 
-    function updatePermissionsUI(){
-      if(currentUser==='acco'){ clearAllBtn.classList.remove('hidden'); clearAllBtn.disabled=false; }
-      else { clearAllBtn.classList.add('hidden'); clearAllBtn.disabled=true; }
-    }
+function updatePermissionsUI(){
+  if(currentUser==='acco' || currentUser==='admin'){
+    clearAllBtn.classList.remove('hidden');
+    clearAllBtn.disabled = false;
+  } else {
+    clearAllBtn.classList.add('hidden');
+    clearAllBtn.disabled = true;
+  }
+}
 
     function setSession(user){
-      currentUser = user; // 'acco' | 'consultoria'
-      localStorage.setItem('loggedUser', user);
-      selectedTeam = user;
-      localStorage.setItem('selectedTeam', selectedTeam);
-      teamSelect.value = user;
-      teamSelect.setAttribute('disabled','disabled');
-      teamSelect.classList.add('opacity-70','cursor-not-allowed');
+  currentUser = user; // 'acco' | 'consultoria' | 'admin'
+  localStorage.setItem('loggedUser', user);
+  selectedTeam = user === 'admin' ? 'acco' : user;
+  localStorage.setItem('selectedTeam', selectedTeam);
+  teamSelect.value = selectedTeam;
 
-      sessionBar.classList.remove('hidden');
-      whoami.textContent = user;
-      if(user==='acco'){ teamPill.textContent='ACCO'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700'; }
-      else { teamPill.textContent='Consultoría'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'; }
+  // Bloquear selector de equipo si no es admin
+  if (user !== 'admin') {
+    teamSelect.setAttribute('disabled','disabled');
+    teamSelect.classList.add('opacity-70','cursor-not-allowed');
+  } else {
+    teamSelect.removeAttribute('disabled');
+    teamSelect.classList.remove('opacity-70','cursor-not-allowed');
+  }
 
-      updateNameOptions();
-      updatePermissionsUI();
-      closeLoginModal();
-      showNotification('Sesión iniciada','success');
-    }
+  sessionBar.classList.remove('hidden');
+  whoami.textContent = user;
+  if (user === 'acco') {
+    teamPill.textContent='ACCO';
+    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
+  } else if (user === 'consultoria') {
+    teamPill.textContent='Consultoría';
+    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
+  } else {
+    teamPill.textContent='ADMIN';
+    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700';
+  }
+
+  updateNameOptions();
+  updatePermissionsUI();
+  closeLoginModal();
+  showNotification('Sesión iniciada','success');
+}
 
     function tryAutoLogin(){
       const saved=localStorage.getItem('loggedUser');
@@ -356,8 +376,10 @@
       const p = loginPass.value;
       const okAcco = (u==='acco' && p==='botaco1234');
       const okCons = (u==='consultoria' && p==='consultor1234');
+      const okAdmin = (u==='admin' && p==='reply');
       if(okAcco) return setSession('acco');
       if(okCons) return setSession('consultoria');
+      if (okAdmin) return setSession('admin');
       loginError.classList.remove('hidden');
     });
 
@@ -668,8 +690,6 @@ if (!rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
-
-
         // Hacer reserva
         reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
         saveReservations();
@@ -677,7 +697,24 @@ if (!rot.allowed) {
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       });
     });
-
+    // ===== Funcionalidad extra: ADMIN puede anular o desbloquear sillas =====
+if (currentUser === 'admin') {
+  chairs.forEach(chair => {
+    chair.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // Prevenir el menú contextual predeterminado
+      const chairId = `${chair.dataset.table}-${chair.dataset.chair}`;
+      if (reservations[chairId]?.blocked) {
+        delete reservations[chairId]; // Desbloquear silla
+        showNotification(`Silla ${chairId} desbloqueada.`, 'success');
+      } else {
+        reservations[chairId] = { blocked: true }; // Bloquear silla
+        showNotification(`Silla ${chairId} bloqueada.`, 'error');
+      }
+      saveReservations();
+      updateChairDisplay();
+    });
+  });
+}
     // UI
     function updateChairDisplay(){
       chairs.forEach(chair=>{
@@ -848,10 +885,76 @@ if (!rot.allowed) {
       div.style.display = div.textContent.toLowerCase().includes(filter) ? '' : 'none';
     });
   });
-    
+    if (currentUser === 'admin') {
+  const adminPanel = document.createElement('div');
+  adminPanel.className = 'mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg';
+  adminPanel.innerHTML = `
+    <h3 class="font-semibold text-yellow-800 mb-2">Panel del Administrador</h3>
+    <div class="flex flex-wrap gap-3">
+      <input id="newPersonName" type="text" placeholder="Nombre nuevo..." class="border p-2 rounded w-48"/>
+      <select id="newPersonTeam" class="border p-2 rounded">
+        <option value="acco">Equipo ACCO</option>
+        <option value="consultoria">Equipo Consultoría</option>
+      </select>
+      <button id="addPersonBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">➕ Agregar Persona</button>
+    </div>
+    <div class="mt-4">
+      <h4 class="text-sm font-semibold mb-1 text-yellow-700">Marcar vacaciones</h4>
+      <select id="vacationSelect" class="border p-2 rounded w-64">
+        <option value="">Seleccionar persona...</option>
+      </select>
+      <button id="toggleVacationBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded">🏖️ Alternar Vacaciones</button>
+    </div>`;
+  document.querySelector('.bg-white.rounded-lg.shadow-lg.p-6').after(adminPanel);
+
+  // Rellenar vacaciones
+  const vacationSelect = document.getElementById('vacationSelect');
+  [...teamMembers.acco, ...teamMembers.consultoria].forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    vacationSelect.appendChild(opt);
+  });
+
+  const vacationList = JSON.parse(localStorage.getItem('vacations') || '[]');
+
+  document.getElementById('addPersonBtn').addEventListener('click',()=>{
+    const name = document.getElementById('newPersonName').value.trim();
+    const team = document.getElementById('newPersonTeam').value;
+    if(!name) return showNotification('Debe ingresar un nombre','error');
+    if(teamMembers[team].includes(name)) return showNotification('Ya existe','error');
+    teamMembers[team].push(name);
+    updateNameOptions();
+    showNotification(`${name} agregado a ${team.toUpperCase()}`,'success');
+  });
+
+  document.getElementById('toggleVacationBtn').addEventListener('click',()=>{
+    const name = vacationSelect.value;
+    if(!name) return;
+    const idx = vacationList.indexOf(name);
+    if(idx>=0){ vacationList.splice(idx,1); showNotification(`${name} volvió de vacaciones`,'success'); }
+    else { vacationList.push(name); showNotification(`${name} está de vacaciones`,'error'); }
+    localStorage.setItem('vacations', JSON.stringify(vacationList));
+    updateNameOptions();
+  });
+
+  // Integrar vacaciones al sistema
+  const originalUpdateNameOptions = updateNameOptions;
+  updateNameOptions = function(){
+    originalUpdateNameOptions();
+    const vacations = JSON.parse(localStorage.getItem('vacations') || '[]');
+    document.querySelectorAll('#nameSelect option').forEach(opt=>{
+      if(vacations.includes(opt.value)){
+        opt.textContent += ' 🌴 (vacaciones)';
+        opt.disabled = true;
+      }
+    });
+  };
+}
+
   </script>
 </body>
 </html>
+
 
 
 
