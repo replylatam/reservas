@@ -211,7 +211,33 @@ window.firebaseGet = get;
             </button>
           </div>
       </div>
+  <!-- 🔹 MODAL HISTÓRICO -->
+<div id="historyModal" class="fixed inset-0 hidden items-center justify-center z-50">
+  <div class="absolute inset-0 bg-black/50"></div>
+  <div class="relative bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-bold text-gray-800">Histórico de asientos</h3>
+      <button id="historyClose" class="px-3 py-1.5 rounded-md border hover:bg-gray-50">Cerrar</button>
+    </div>
 
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Filtrar por persona (opcional)</label>
+        <select id="historyPerson" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">— Ver todo —</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button id="historyRefresh" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium border">
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div id="historyList" class="max-h-[60vh] overflow-auto border rounded-lg p-3 bg-gray-50"></div>
+    <p class="mt-3 text-xs text-gray-500">Se muestran sesiones guardadas en el servidor; si estás sin conexión se intentará usar respaldos locales.</p>
+  </div>
+</div>
       <!-- Instrucciones de Uso -->
       <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
         <h3 class="text-lg font-semibold text-green-800 mb-2">🚀 Sistema en Tiempo Real Activado:</h3>
@@ -274,13 +300,86 @@ window.firebaseGet = get;
     const connectionStatus = document.getElementById('connectionStatus');
     const sessionBanner = document.getElementById('sessionBanner');
     const shareBtn = document.getElementById('shareBtn');
-// 🔹 REFS HISTÓRICO
-const historyBtn     = document.getElementById('historyBtn');
-const historyModal   = document.getElementById('historyModal');
-const historyClose   = document.getElementById('historyClose');
-const historyPerson  = document.getElementById('historyPerson');
-const historyList    = document.getElementById('historyList');
-const historyRefresh = document.getElementById('historyRefresh');
+ // === HISTÓRICO ===
+  const historyBtn     = document.getElementById('historyBtn');
+  const historyModal   = document.getElementById('historyModal');
+  const historyClose   = document.getElementById('historyClose');
+  const historyPerson  = document.getElementById('historyPerson');
+  const historyList    = document.getElementById('historyList');
+  const historyRefresh = document.getElementById('historyRefresh');
+
+  function openHistory(){ historyModal.classList.remove('hidden'); historyModal.classList.add('flex'); document.body.style.overflow='hidden'; }
+  function closeHistory(){ historyModal.classList.add('hidden'); historyModal.classList.remove('flex'); document.body.style.overflow=''; }
+
+  historyBtn?.addEventListener('click', async ()=>{
+    await populateHistoryPeople();
+    await renderHistory(); 
+    openHistory();
+  });
+  historyClose?.addEventListener('click', closeHistory);
+  historyRefresh?.addEventListener('click', async ()=>{ await renderHistory(historyPerson.value); });
+  historyPerson?.addEventListener('change', async ()=>{ await renderHistory(historyPerson.value); });
+
+  async function fetchAllSessions(){
+    try{
+      if (window.firebaseDB && window.firebaseRef && window.firebaseGet){
+        const rootRef = window.firebaseRef(window.firebaseDB, 'reservations');
+        const snap = await window.firebaseGet(rootRef);
+        if (snap.exists()) return snap.val();
+      }
+    }catch(e){}
+    const local = {};
+    Object.keys(localStorage).forEach(k=>{
+      const m = k.match(/^backup_(\d{4}-\d{2}-\d{2})$/);
+      if(m){
+        const date = m[1];
+        local[date] = { data: JSON.parse(localStorage.getItem(k) || '{}') };
+      }
+    });
+    return local;
+  }
+
+  async function populateHistoryPeople(){
+    const all = [...teamMembers.acco, ...teamMembers.consultoria].sort((a,b)=> a.localeCompare(b));
+    historyPerson.innerHTML = `<option value="">— Ver todo —</option>` + all.map(n=>`<option value="${n}">${n}</option>`).join('');
+  }
+
+  async function renderHistory(personFilter=''){
+    historyList.innerHTML = `<div class="text-sm text-gray-500">Cargando histórico...</div>`;
+    const all = await fetchAllSessions();
+    const dates = Object.keys(all).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+    if(!dates.length){ historyList.innerHTML = `<div class="text-sm text-gray-500">No hay sesiones guardadas.</div>`; return; }
+
+    const fmt = (d)=> new Date(d+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'short',day:'numeric'});
+
+    if(personFilter){
+      const rows = [];
+      for(const d of dates){
+        const data = all[d]?.data || {};
+        for(const [seatId, r] of Object.entries(data)){
+          if(r?.name === personFilter){
+            rows.push({ date: d, table: r.table, chair: r.chair, team: r.team });
+          }
+        }
+      }
+      if(!rows.length){
+        historyList.innerHTML = `<div class="text-sm text-gray-600">No hay registros para <strong>${personFilter}</strong>.</div>`;
+        return;
+      }
+      historyList.innerHTML = `
+        <div class="overflow-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-white">
+              <tr>
+                <th class="text-left px-3 py-2 border-b">Fecha</th>
+                <th class="text-left px-3 py-2 border-b">Mesa</th>
+                <th class="text-left px-3 py-2 border-b">Silla</th>
+                <th class="text-left px-3 py-2 border-b">Equipo</th>
+              </tr>
+            </thead>
+            <tbody class="bg-gray-50">
+              ${rows.sort((a,b)=> a.date.localeCompare(b.date)).map(r=>`
+                <
 
 // Abrir/cerrar modal
 function openHistory(){ historyModal.classList.remove('hidden'); historyModal.classList.add('flex'); document.body.style.overflow='hidden'; }
@@ -910,32 +1009,6 @@ if (!rot.allowed) {
     // Forzar login al cargar (o autologin)
     if (!tryAutoLogin()) { openLoginModal(); }
   </script>
-  <!-- 🔹 MODAL HISTÓRICO -->
-<div id="historyModal" class="fixed inset-0 hidden items-center justify-center z-50">
-  <div class="absolute inset-0 bg-black/50"></div>
-  <div class="relative bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xl font-bold text-gray-800">Histórico de asientos</h3>
-      <button id="historyClose" class="px-3 py-1.5 rounded-md border hover:bg-gray-50">Cerrar</button>
-    </div>
-
-    <div class="grid md:grid-cols-3 gap-4 mb-4">
-      <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Filtrar por persona (opcional)</label>
-        <select id="historyPerson" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">— Ver todo —</option>
-        </select>
-      </div>
-      <div class="flex items-end">
-        <button id="historyRefresh" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium border">
-          Actualizar
-        </button>
-      </div>
-    </div>
-
-    <div id="historyList" class="max-h-[60vh] overflow-auto border rounded-lg p-3 bg-gray-50"></div>
-    <p class="mt-3 text-xs text-gray-500">Se muestran sesiones guardadas en el servidor; si estás sin conexión se intentará usar respaldos locales.</p>
-  </div>
-</div>
 </body>
 </html>
+
