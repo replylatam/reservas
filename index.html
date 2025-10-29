@@ -640,10 +640,10 @@ function isSeatedWithLeader(analystName, selectedChairId) {
       for (let adjacentChairId of adjacentChairs) {
         const adjacentReservation = prevReservations[adjacentChairId];
         if (adjacentReservation && leaders.includes(adjacentReservation.name)) {
-          // Si el líder con el que estuvo el analista en la sesión anterior
-          // está en la misma mesa de la sesión actual, bloqueamos la reserva
+          // El analista estuvo en la misma mesa con el líder en la sesión anterior
+          // Ahora verificamos si está intentando sentarse con el mismo líder
           if (reservation.table === selectedChairId.split('-')[0]) {
-            return true; // El analista estuvo en la misma mesa con el líder en la sesión anterior
+            return true; // El analista estuvo con el líder en la sesión anterior
           }
         }
       }
@@ -651,6 +651,7 @@ function isSeatedWithLeader(analystName, selectedChairId) {
   }
   return false; // No está sentado junto a un líder en la misma mesa
 }
+
 
 
 // Función para obtener las sillas adyacentes (en base a la mesa y número de silla)
@@ -701,7 +702,7 @@ chairs.forEach(chair => {
     const chairId = `${table}-${chairNum}`;
 
     // Validar si el miembro es un analista y si se está sentando con un líder
-    if (analysts.includes(selectedName)) {
+      if (analysts.includes(selectedName)) {
       const wasSeatedWithLeader = isSeatedWithLeader(selectedName, chairId);
       if (wasSeatedWithLeader) {
         showNotification(`${selectedName} no puede sentarse con el mismo líder (Laura, Alan o Jose) dos días consecutivos.`, 'error');
@@ -862,6 +863,7 @@ chairs.forEach(chair => {
   </script>
 </body>
 </html>
+
 
 
 
