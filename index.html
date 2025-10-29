@@ -65,7 +65,7 @@
       <form id="loginForm" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-          <input id="loginUser" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="acco / consultoria" autocomplete="username" required />
+          <input id="loginUser" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="acco / consultoria / admin" autocomplete="username" required />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
@@ -74,7 +74,7 @@
         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium">Entrar</button>
       </form>
       <p id="loginError" class="mt-3 text-sm text-red-600 hidden">Usuario o contraseña incorrectos</p>
-      <div class="mt-4 text-xs text-gray-400 text-center">Usuarios válidos: acco / consultoria</div>
+      <div class="mt-4 text-xs text-gray-400 text-center">Usuarios válidos: acco / consultoria / admin</div>
     </div>
   </div>
 
@@ -212,6 +212,54 @@
             📱 Compartir Link
           </button>
         </div>
+
+        <!-- Panel Admin -->
+        <div id="adminPanel" class="hidden mt-8 border-t pt-6">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel Admin</h3>
+
+          <!-- Gestionar Vacaciones -->
+          <div class="mb-6">
+            <h4 class="text-lg font-medium mb-2">Marcar Vacaciones</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Equipo</label>
+                <select id="vacTeam" class="w-full p-2 border rounded">
+                  <option value="acco">ACCO</option>
+                  <option value="consultoria">Consultoría</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <select id="vacName" class="w-full p-2 border rounded"></select>
+              </div>
+              <div class="flex items-end">
+                <button id="toggleVacBtn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded font-medium">Marcar/Quitar Vacaciones</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gestionar Miembros -->
+          <div>
+            <h4 class="text-lg font-medium mb-2">Gestionar Miembros</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Equipo</label>
+                <select id="manageTeam" class="w-full p-2 border rounded">
+                  <option value="acco">ACCO</option>
+                  <option value="consultoria">Consultoría</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nuevo Nombre</label>
+                <input id="newMemberName" type="text" class="w-full p-2 border rounded" placeholder="Ej: Nuevo Miembro">
+              </div>
+              <div class="flex items-end">
+                <button id="addMemberBtn" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium">Agregar</button>
+              </div>
+            </div>
+            <div id="memberList" class="space-y-2"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Instrucciones de Uso -->
@@ -242,34 +290,32 @@
 
   <script>
     let reservations = {};
-    let prevReservations = {}; // última sesión (para “no repetir asiento”)
+    let prevReservations = {};
     let blocked = {};
-    // Función para cargar las reservas anteriores (esto debe hacerse al cargar la página o al obtener las reservas desde Firebase)
-function loadPrevSessionReservations() {
-  const prevPath = `reservations/${SESSION.prevSessionDate}`;
-  
-  try {
-    const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
-    window.firebaseOnValue(prevRef, (snapshot) => {
-      const data = snapshot.val();
-      prevReservations = data ? data.data : {}; // Cargar reservas de la sesión anterior
-    });
-  } catch (e) {
-    console.error("Error al cargar las reservas previas:", e);
-  }
-}
-
-    let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
-    let selectedName = '';
-    let currentUser = null; // 'acco' | 'consultoria'
-
-    // Nombres por equipo
-    const teamMembers = {
+    let vacations = { acco: [], consultoria: [] };
+    let teamMembers = { acco: [], consultoria: [] };
+    const defaultTeamMembers = {
       acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
       consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
     };
 
-    // Refs DOM
+    function loadPrevSessionReservations() {
+      const prevPath = `reservations/${SESSION.prevSessionDate}`;
+      try {
+        const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
+        window.firebaseOnValue(prevRef, (snapshot) => {
+          const data = snapshot.val();
+          prevReservations = data ? data.data : {};
+        });
+      } catch (e) {
+        console.error("Error al cargar las reservas previas:", e);
+      }
+    }
+
+    let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
+    let selectedName = '';
+    let currentUser = null;
+
     const teamSelect = document.getElementById('teamSelect');
     const nameSelect = document.getElementById('nameSelect');
     const clearAllBtn = document.getElementById('clearAllBtn');
@@ -280,41 +326,48 @@ function loadPrevSessionReservations() {
     const currentUrl = document.getElementById('currentUrl');
 
     const loginModal = document.getElementById('loginModal');
-    const loginForm  = document.getElementById('loginForm');
-    const loginUser  = document.getElementById('loginUser');
-    const loginPass  = document.getElementById('loginPass');
+    const loginForm = document.getElementById('loginForm');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
     const loginError = document.getElementById('loginError');
 
     const sessionBar = document.getElementById('sessionBar');
-    const whoami     = document.getElementById('whoami');
-    const teamPill   = document.getElementById('teamPill');
-    const logoutBtn  = document.getElementById('logoutBtn');
+    const whoami = document.getElementById('whoami');
+    const teamPill = document.getElementById('teamPill');
+    const logoutBtn = document.getElementById('logoutBtn');
     const connectionStatus = document.getElementById('connectionStatus');
     const sessionBanner = document.getElementById('sessionBanner');
 
-    // Mostrar URL actual
+    const adminPanel = document.getElementById('adminPanel');
+    const vacTeam = document.getElementById('vacTeam');
+    const vacName = document.getElementById('vacName');
+    const toggleVacBtn = document.getElementById('toggleVacBtn');
+    const manageTeam = document.getElementById('manageTeam');
+    const newMemberName = document.getElementById('newMemberName');
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    const memberList = document.getElementById('memberList');
+
     currentUrl.textContent = window.location.href;
 
-    // ===== Ciclo Martes/Jueves =====
     function z(n){ return String(n).padStart(2,'0'); }
     function formatYMD(d){ return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
     function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
-    function nextWeekday(targetDow){ // 0=Dom..6=Sáb
+    function nextWeekday(targetDow){
       const now=new Date(); const dow=now.getDay();
-      let delta=(targetDow-dow+7)%7; if(delta===0) delta=7; // próximo, no hoy
+      let delta=(targetDow-dow+7)%7; if(delta===0) delta=7;
       return addDays(now, delta);
     }
     function prevWeekday(targetDow){
       const now=new Date(); const dow=now.getDay();
-      let delta=(dow-targetDow+7)%7; if(delta===0) delta=7; // anterior, no hoy
+      let delta=(dow-targetDow+7)%7; if(delta===0) delta=7;
       return addDays(now, -delta);
     }
     function getSessionInfo(){
       const now=new Date(); const dow=now.getDay();
       let canReserve=false, nextS, prevS, label;
-      if (dow===1){ // Lunes => reservo Martes, comparo con Jueves pasado
+      if (dow===1){
         nextS=nextWeekday(2); prevS=prevWeekday(4); label='Reservando para MARTES'; canReserve=true;
-      } else if (dow===3){ // Miércoles => reservo Jueves, comparo con Martes de la misma semana
+      } else if (dow===3){
         nextS=nextWeekday(4); prevS=prevWeekday(2); label='Reservando para JUEVES'; canReserve=true;
       } else {
         if (dow<2) { nextS=nextWeekday(2); prevS=prevWeekday(4); label='Próximo MARTES (solo lectura)'; }
@@ -335,101 +388,92 @@ function loadPrevSessionReservations() {
         </div>`;
     }
 
-    // ===== Login & permisos =====
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
-function closeLoginModal() {
-  loginModal.classList.add('hidden');
-  loginModal.classList.remove('flex');
-  document.body.style.overflow = '';
-}
-function updatePermissionsUI() {
-  if (currentUser === 'acco') {
-    clearAllBtn.classList.remove('hidden');
-    clearAllBtn.disabled = false;
-  } else if (currentUser === 'admin') {
-    clearAllBtn.classList.remove('hidden');  // Muestra el botón solo para el admin
-    clearAllBtn.disabled = false;
-  } else {
-    clearAllBtn.classList.add('hidden');
-    clearAllBtn.disabled = true;
-  }
-}
+    function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow = ''; }
+    function updatePermissionsUI(){
+      if(currentUser === 'admin' || currentUser === 'acco'){
+        clearAllBtn.classList.remove('hidden');
+      } else {
+        clearAllBtn.classList.add('hidden');
+      }
+      if(currentUser === 'admin'){
+        adminPanel.classList.remove('hidden');
+      } else {
+        adminPanel.classList.add('hidden');
+      }
+    }
 
-function setSession(user) {
-  currentUser = user;
-  localStorage.setItem('loggedUser', user);
+    function setSession(user){
+      currentUser = user;
+      localStorage.setItem('loggedUser', user);
+      if(user === 'admin'){
+        selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
+        teamSelect.removeAttribute('disabled');
+        teamSelect.classList.remove('opacity-70', 'cursor-not-allowed');
+      } else {
+        selectedTeam = user;
+        teamSelect.value = user;
+        teamSelect.setAttribute('disabled', 'disabled');
+        teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
+      }
+      localStorage.setItem('selectedTeam', selectedTeam);
+      teamSelect.value = selectedTeam;
 
-  // Admin puede cambiar de equipo
-  if (user === 'admin') {
-    selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
-    teamSelect.removeAttribute('disabled');
-    teamSelect.classList.remove('opacity-70', 'cursor-not-allowed');
-  } else {
-    selectedTeam = user;
-    teamSelect.value = user;
-    teamSelect.setAttribute('disabled', 'disabled');
-    teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
-  }
+      sessionBar.classList.remove('hidden');
+      whoami.textContent = user.toUpperCase();
+      if(user === 'acco'){
+        teamPill.textContent = 'ACCO';
+        teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
+      } else if(user === 'consultoria'){
+        teamPill.textContent = 'Consultoría';
+        teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
+      } else {
+        teamPill.textContent = 'Admin';
+        teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700';
+      }
 
-  localStorage.setItem('selectedTeam', selectedTeam);
-  teamSelect.value = selectedTeam;
-
-  sessionBar.classList.remove('hidden');
-  whoami.textContent = user;
-
-  if (user === 'acco') {
-    teamPill.textContent = 'ACCO';
-    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
-  } else if (user === 'consultoria') {
-    teamPill.textContent = 'Consultoría';
-    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
-  } else {
-    teamPill.textContent = 'Admin';
-    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700';
-  }
-
-  updateNameOptions(); // ← ahora no falla
-  updatePermissionsUI();
-  closeLoginModal();
-  showNotification('Sesión iniciada', 'success');
-}
+      updateNameOptions();
+      updatePermissionsUI();
+      updateAdminUI();
+      closeLoginModal();
+      showNotification('Sesión iniciada', 'success');
+    }
 
     function tryAutoLogin(){
-      const saved=localStorage.getItem('loggedUser');
-      if(saved==='acco' || saved==='consultoria'){ setSession(saved); return true; }
+      const saved = localStorage.getItem('loggedUser');
+      if(saved && (saved==='acco' || saved==='consultoria' || saved==='admin')){
+        setSession(saved);
+        return true;
+      }
       return false;
     }
 
-loginForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  loginError.classList.add('hidden');
-  const u = loginUser.value.trim().toLowerCase();
-  const p = loginPass.value;
-  
-  const okAcco = (u === 'acco' && p === 'bloqueado');
-  const okCons = (u === 'consultoria' && p === 'consultor1234');
-  const okAdmin = (u === 'admin' && p === 'reply'); // Aquí agregamos el admin
-  
-  if (okAcco) return setSession('acco');
-  if (okCons) return setSession('consultoria');
-  if (okAdmin) return setSession('admin'); // ← Solo esto
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+      const u = loginUser.value.trim().toLowerCase();
+      const p = loginPass.value;
+      if(u === 'acco' && p === 'bloqueado') return setSession('acco');
+      if(u === 'consultoria' && p === 'consultor1234') return setSession('consultoria');
+      if(u === 'admin' && p === 'reply') return setSession('admin');
+      loginError.classList.remove('hidden');
+    });
 
-  loginError.classList.remove('hidden');
-});
-
-    logoutBtn.addEventListener('click',()=>{
+    logoutBtn.addEventListener('click', () => {
       localStorage.removeItem('loggedUser');
       showNotification('Sesión cerrada');
       location.reload();
     });
 
-    // ===== Reglas / Helpers =====
-    function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
+    function hasExistingReservation(name){
+      return Object.values(reservations).some(r => r.name === name);
+    }
 
     function updateNameOptions(){
-      const members = teamMembers[selectedTeam] || []; // ← AÑADE || []
+      if(!teamMembers[selectedTeam]) return;
+      const availableMembers = teamMembers[selectedTeam].filter(name => !vacations[selectedTeam].includes(name));
       nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
-      members.forEach(member=>{
+      availableMembers.forEach(member => {
         const option = document.createElement('option');
         option.value = member;
         option.textContent = hasExistingReservation(member) ? `${member} (Tiene reserva - clic para cancelar)` : member;
@@ -438,488 +482,416 @@ loginForm.addEventListener('submit', (e) => {
       selectedName = '';
     }
 
-    teamSelect.addEventListener('change',(e)=>{
+    teamSelect.addEventListener('change', (e) => {
       selectedTeam = e.target.value;
       localStorage.setItem('selectedTeam', selectedTeam);
       updateNameOptions();
     });
 
-    nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
+    nameSelect.addEventListener('change', (e) => { selectedName = e.target.value; });
 
-clearAllBtn.addEventListener('click', () => {
-  if (currentUser !== 'admin') {
-    showNotification('Solo el usuario ADMIN puede limpiar todas las reservas', 'error');
-    return;
-  }
-
-  const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
-  if (!ok) return;
-
-  // 🧹 Limpiar reservas
-  reservations = {};
-  saveReservations();
-  updateChairDisplay();
-  updateReservationSummary();
-  updatePendingPeople();
-  updateNameOptions();
-  showNotification('Todas las reservas fueron eliminadas', 'success');
-});
-
-
-    shareBtn.addEventListener('click',()=>{
-      const url=window.location.href;
-      if(navigator.share){ navigator.share({title:'Sistema de Reservas de Mesas', text:'Entra para hacer tu reserva de mesa', url}); }
-      else { navigator.clipboard.writeText(url).then(()=>showNotification('Link copiado 📋','success')); }
+    clearAllBtn.addEventListener('click', () => {
+      if(currentUser !== 'admin' && currentUser !== 'acco'){
+        showNotification('No tienes permiso', 'error');
+        return;
+      }
+      if(!confirm('¿Seguro que quieres eliminar TODAS las reservas?')) return;
+      reservations = {};
+      saveReservations();
+      updateChairDisplay();
+      updateReservationSummary();
+      updatePendingPeople();
+      updateNameOptions();
+      showNotification('Reservas eliminadas', 'success');
     });
 
-    // ===== Firebase (por sesión) =====
+    shareBtn.addEventListener('click', () => {
+      const url = window.location.href;
+      if(navigator.share){
+        navigator.share({title: 'Sistema de Reservas', text: 'Reserva tu mesa', url});
+      } else {
+        navigator.clipboard.writeText(url).then(() => showNotification('Link copiado', 'success'));
+      }
+    });
+
     let isFirebaseReady = false;
 
     function updateConnectionStatus(connected){
-      connectionStatus.className = 'w-3 h-3 rounded-full ' + (connected ? 'bg-green-400 animate-pulse' : 'bg-red-400');
+      connectionStatus.className = `w-3 h-3 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`;
     }
 
     function saveReservations(){
       const path = `reservations/${SESSION.nextSessionDate}`;
       if(!isFirebaseReady){
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
-        showNotification('Guardado local (sin conexión)', 'error');
+        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked, vacations}));
+        showNotification('Guardado local', 'error');
         return;
       }
       try{
-        const reservationsRef = window.firebaseRef(window.firebaseDB, path);
-        window.firebaseSet(reservationsRef, {
+        const ref = window.firebaseRef(window.firebaseDB, path);
+        window.firebaseSet(ref, {
           data: reservations,
-          blocked: blocked,
+          blocked,
+          vacations,
           lastUpdate: new Date().toISOString(),
           timestamp: Date.now()
-        }).then(()=>{
+        }).then(() => {
           updateConnectionStatus(true);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
-          showNotification('💾 Guardado en tiempo real', 'success');
-        }).catch(()=>{
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked, vacations}));
+          showNotification('Guardado', 'success');
+        }).catch(() => {
           updateConnectionStatus(false);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
-          showNotification('Error de conexión - Guardado local', 'error');
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked, vacations}));
+          showNotification('Error conexión', 'error');
         });
-      }catch{
+      } catch(e){
         updateConnectionStatus(false);
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
-        showNotification('Error al guardar - Modo local', 'error');
+        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked, vacations}));
+        showNotification('Error guardar', 'error');
       }
     }
 
     function loadReservations(){
       const nextPath = `reservations/${SESSION.nextSessionDate}`;
       const prevPath = `reservations/${SESSION.prevSessionDate}`;
-
       if(!isFirebaseReady){
         const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
         reservations = backup.data || {};
         blocked = backup.blocked || {};
+        vacations = backup.vacations || {acco: [], consultoria: []};
         const prevBackup = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
         prevReservations = prevBackup.data || {};
-        updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
+        updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions(); updateAdminUI();
         return;
       }
       try{
         const nextRef = window.firebaseRef(window.firebaseDB, nextPath);
-        const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
-
-        window.firebaseOnValue(nextRef, (snapshot)=>{
-          const data = snapshot.val();
-          reservations = (data && data.data) ? data.data : {};
-          blocked = (data && data.blocked) ? data.blocked : {};
+        window.firebaseOnValue(nextRef, (snap) => {
+          const data = snap.val();
+          reservations = data?.data || {};
+          blocked = data?.blocked || {};
+          vacations = data?.vacations || {acco: [], consultoria: []};
           updateConnectionStatus(true);
-          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
-        }, ()=>{
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked, vacations}));
+          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions(); updateAdminUI();
+        }, () => {
           updateConnectionStatus(false);
           const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
           reservations = backup.data || {};
           blocked = backup.blocked || {};
-          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
+          vacations = backup.vacations || {acco: [], consultoria: []};
+          updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions(); updateAdminUI();
         });
 
-        window.firebaseOnValue(prevRef, (snapshot)=>{
-          const data = snapshot.val();
-          prevReservations = (data && data.data) ? data.data : {};
+        const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
+        window.firebaseOnValue(prevRef, (snap) => {
+          const data = snap.val();
+          prevReservations = data?.data || {};
           localStorage.setItem(`backup_${SESSION.prevSessionDate}`, JSON.stringify({data: prevReservations}));
-        }, ()=>{});
-      }catch{
+        });
+      } catch(e){
         updateConnectionStatus(false);
         const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
         reservations = backup.data || {};
         blocked = backup.blocked || {};
+        vacations = backup.vacations || {acco: [], consultoria: []};
         const prevBackup = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
         prevReservations = prevBackup.data || {};
-        updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
+        updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions(); updateAdminUI();
       }
     }
 
-    // ===== Reglas de asiento (las de tu versión + “no repetir” consecutivo) =====
-    function canSitInChair(table, chairNum, team, personName) {
+    function loadTeamMembers(){
+      const ref = window.firebaseRef(window.firebaseDB, 'config/teamMembers');
+      window.firebaseOnValue(ref, (snap) => {
+        teamMembers = snap.val() || defaultTeamMembers;
+        updateNameOptions();
+        updatePendingPeople();
+        updateAdminUI();
+      }, () => {
+        teamMembers = defaultTeamMembers;
+        updateNameOptions();
+        updatePendingPeople();
+        updateAdminUI();
+      });
+    }
+
+    function saveTeamMembers(){
+      if(!isFirebaseReady) return;
+      try{
+        const ref = window.firebaseRef(window.firebaseDB, 'config/teamMembers');
+        window.firebaseSet(ref, teamMembers);
+      } catch(e){
+        console.error(e);
+      }
+    }
+
+    function canSitInChair(table, chairNum, team, personName){
       const chairNumInt = parseInt(chairNum);
       let adjacentChairs = [];
-
-      if (table === '1') {
-        if (chairNumInt >= 1 && chairNumInt <= 4) { if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 5 && chairNumInt <= 8) { if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-      } else if (table === '2') {
-        if (chairNumInt >= 9 && chairNumInt <= 12) { if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 13 && chairNumInt <= 16) { if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-      } else if (table === '3') {
-        if (chairNumInt >= 17 && chairNumInt <= 20) { if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
-        else if (chairNumInt >= 21 && chairNumInt <= 24) { if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
+      if(table === '1'){
+        if(chairNumInt >=1 && chairNumInt <=4){ if(chairNumInt >1) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <4) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
+        else if(chairNumInt >=5 && chairNumInt <=8){ if(chairNumInt >5) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <8) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
+      } else if(table === '2'){
+        if(chairNumInt >=9 && chairNumInt <=12){ if(chairNumInt >9) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <12) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
+        else if(chairNumInt >=13 && chairNumInt <=16){ if(chairNumInt >13) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <16) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
+      } else if(table === '3'){
+        if(chairNumInt >=17 && chairNumInt <=20){ if(chairNumInt >17) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <20) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
+        else if(chairNumInt >=21 && chairNumInt <=24){ if(chairNumInt >21) adjacentChairs.push(`${table}-${chairNumInt-1}`); if(chairNumInt <24) adjacentChairs.push(`${table}-${chairNumInt+1}`); }
       }
-
-      // Consultoría no puede estar al lado (excepto Jose)
-      if (team === 'consultoria' && personName !== 'Jose') {
-        for (let adjacentChairId of adjacentChairs) {
-          if (reservations[adjacentChairId] && reservations[adjacentChairId].team === 'consultoria') return false;
+      if(team === 'consultoria' && personName !== 'Jose'){
+        for(let adj of adjacentChairs){
+          if(reservations[adj] && reservations[adj].team === 'consultoria') return false;
         }
       }
-
-      // ACCO máximo 2 consecutivas
-      if (team === 'acco') return !wouldCreateThreeConsecutiveACCO(table, chairNumInt);
+      if(team === 'acco') return !wouldCreateThreeConsecutiveACCO(table, chairNumInt);
       return true;
     }
 
-    function wouldCreateThreeConsecutiveACCO(table, chairNum) {
-      let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
-      let tempReservations = { ...reservations };
-      tempReservations[`${table}-${chairNum}`] = { team: 'acco' };
-      let leftSide = chairRange.slice(0, 4);
-      if (hasThreeConsecutiveACCO(table, leftSide, tempReservations)) return true;
-      let rightSide = chairRange.slice(4, 8);
-      if (hasThreeConsecutiveACCO(table, rightSide, tempReservations)) return true;
+    function wouldCreateThreeConsecutiveACCO(table, chairNum){
+      let chairRange = table==='1' ? [1,2,3,4,5,6,7,8] : table==='2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
+      let temp = {...reservations};
+      temp[`${table}-${chairNum}`] = {team: 'acco'};
+      let left = chairRange.slice(0,4);
+      if(hasThreeConsecutiveACCO(table, left, temp)) return true;
+      let right = chairRange.slice(4,8);
+      if(hasThreeConsecutiveACCO(table, right, temp)) return true;
       return false;
     }
 
-    function hasThreeConsecutiveACCO(table, sideChairs, tempReservations) {
-      for (let i = 0; i <= sideChairs.length - 3; i++) {
-        let consecutiveACCO = 0;
-        for (let j = i; j < i + 3; j++) {
-          const chairId = `${table}-${sideChairs[j]}`;
-          if (tempReservations[chairId] && tempReservations[chairId].team === 'acco') consecutiveACCO++; else break;
+    function hasThreeConsecutiveACCO(table, sideChairs, temp){
+      for(let i=0; i<=sideChairs.length-3; i++){
+        let count = 0;
+        for(let j=i; j<i+3; j++){
+          const id = `${table}-${sideChairs[j]}`;
+          if(temp[id] && temp[id].team === 'acco') count++; else break;
         }
-        if (consecutiveACCO >= 3) return true;
+        if(count >=3) return true;
       }
       return false;
     }
 
-    function canMaintainMixedTeams(table, team) {
-      let accoCount = 0, consultoriaCount = 0, totalInTable = 0;
-      let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
-
-      chairRange.forEach(chairNum => {
-        const chairId = `${table}-${chairNum}`;
-        if (reservations[chairId]) { totalInTable++; reservations[chairId].team === 'acco' ? accoCount++ : consultoriaCount++; }
+    function canMaintainMixedTeams(table, team){
+      let accoCount=0, consCount=0, total=0;
+      let range = table==='1' ? [1,2,3,4,5,6,7,8] : table==='2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
+      range.forEach(n => {
+        const id = `${table}-${n}`;
+        if(reservations[id]){ total++; reservations[id].team==='acco' ? accoCount++ : consCount++; }
       });
-
-      if (totalInTable === 0) return true;
-      if (team === 'consultoria' && consultoriaCount >= 3) return false;
-
-      if (team === 'acco') {
-        let mesasCon5ACCO = 0;
-        for (let t = 1; t <= 3; t++) {
-          let accoEnMesa = 0;
-          let rango = t===1?[1,2,3,4,5,6,7,8]:t===2?[9,10,11,12,13,14,15,16]:[17,18,19,20,21,22,23,24];
-          rango.forEach(n => { const id = `${t}-${n}`; if (reservations[id]?.team === 'acco') accoEnMesa++; });
-          if (accoEnMesa >= 5) mesasCon5ACCO++;
+      if(total===0) return true;
+      if(team==='consultoria' && consCount>=3) return false;
+      if(team==='acco'){
+        let mesas5=0;
+        for(let t=1;t<=3;t++){
+          let accoM=0;
+          let r = t===1?[1,2,3,4,5,6,7,8]:t===2?[9,10,11,12,13,14,15,16]:[17,18,19,20,21,22,23,24];
+          r.forEach(n=> {if(reservations[`${t}-${n}`]?.team==='acco') accoM++;});
+          if(accoM>=5) mesas5++;
         }
-        if (mesasCon5ACCO >= 1 && accoCount >= 4) return false;
-        if (mesasCon5ACCO === 0 && accoCount >= 5) return false;
-        if (accoCount >= 5) return false;
+        if(mesas5>=1 && accoCount>=4) return false;
+        if(accoCount>=5) return false;
       }
-
-      if (totalInTable === 7) {
-        if (team === 'acco' && consultoriaCount === 0) return false;
-        if (team === 'consultoria' && accoCount === 0) return false;
-        return true;
+      if(total===7){
+        if(team==='acco' && consCount===0) return false;
+        if(team==='consultoria' && accoCount===0) return false;
       }
       return true;
     }
 
-function canPersonSitAtTable(name, table) {
-  const restrictedPeople = ['Alan', 'Jose', 'Laura'];
-  if (!restrictedPeople.includes(name)) return true;
-  for (let reservationId in reservations) {
-    const r = reservations[reservationId];
-    if (r.table === table && restrictedPeople.includes(r.name) && r.name !== name) return false;
-  }
-  return true;
-}
+    function canPersonSitAtTable(name, table){
+      const restricted = ['Alan','Jose','Laura'];
+      if(!restricted.includes(name)) return true;
+      for(let id in reservations){
+        const r = reservations[id];
+        if(r.table === table && restricted.includes(r.name) && r.name !== name) return false;
+      }
+      return true;
+    }
 
-// 🔁 Rotación obligatoria 1→2→3 para Alan, Jose y Laura entre sesiones consecutivas
-function checkRotationForVIP(name, targetTable){
-  const vip = ['Alan','Jose','Laura'];
-  if (!vip.includes(name)) return { allowed: true };
+    function checkRotationForVIP(name, targetTable){
+      const vip = ['Alan','Jose','Laura'];
+      if(!vip.includes(name)) return {allowed: true};
+      if(Object.keys(prevReservations).length === 0) return {allowed: true};
+      const prevEntry = Object.entries(prevReservations).find(([,r]) => r.name === name);
+      if(!prevEntry) return {allowed: true};
+      const prevTable = parseInt(prevEntry[1].table,10);
+      const expected = ((prevTable % 3) + 1);
+      const ok = parseInt(targetTable,10) === expected;
+      return {allowed: ok, expected};
+    }
 
-  // Verificamos si prevReservations está cargada
-  if (Object.keys(prevReservations).length === 0) {
-    console.error("prevReservations no está cargada aún.");
-    return { allowed: true }; // Si no está cargada, permitimos la reserva
-  }
+    const leaders = ['Laura', 'Alan', 'Jose'];
+    const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'];
 
-  // Buscar la mesa de la sesión anterior para esta persona
-  const prevEntry = Object.entries(prevReservations).find(([, r]) => r.name === name);
-  if (!prevEntry) return { allowed: true }; // Si no tiene historial, no forzamos inicio
-
-  const prevTable = parseInt(prevEntry[1].table, 10); // '1'|'2'|'3' → 1|2|3
-  const expected = ((prevTable + 1) % 3) + 1;           // 1→2, 2→3, 3→1
-  const ok = (parseInt(targetTable, 10) === expected);
-
-  return { allowed: ok, expected };
-}
-
-// Nombres de los líderes y analistas
-const leaders = ['Laura', 'Alan', 'Jose'];
-const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'];
-
-// Función para comprobar si un analista se sentó con un líder en la sesión anterior
-function isSeatedWithLeader(analystName, selectedChairId) {
-  // Verificar si el analista estuvo sentado junto a algún líder en la sesión anterior
-  for (let chairId in prevReservations) {
-    const reservation = prevReservations[chairId];
-    
-    // Si el nombre de la reserva es el del analista y está sentado junto a un líder
-    if (reservation.name === analystName) {
-      const adjacentChairs = getAdjacentChairs(reservation.table, reservation.chair);
-      
-      // Comprobar si está sentado junto a algún líder
-      for (let adjacentChairId of adjacentChairs) {
-        const adjacentReservation = prevReservations[adjacentChairId];
-        if (adjacentReservation && leaders.includes(adjacentReservation.name)) {
-          return true; // Estaba sentado junto a un líder
+    function isSeatedWithLeader(analystName, selectedChairId){
+      for(let chairId in prevReservations){
+        const res = prevReservations[chairId];
+        if(res.name === analystName){
+          const adj = getAdjacentChairs(res.table, res.chair);
+          for(let adjId of adj){
+            const adjRes = prevReservations[adjId];
+            if(adjRes && leaders.includes(adjRes.name)) return true;
+          }
         }
       }
+      return false;
     }
-  }
-  return false; // No está sentado junto a un líder
-}
 
-// Función para obtener las sillas adyacentes (en base a la mesa y número de silla)
-function getAdjacentChairs(table, chairNum) {
-  const adjacentChairs = [];
-  const chairNumInt = parseInt(chairNum);
+    function getAdjacentChairs(table, chairNum){
+      const adj = [];
+      const num = parseInt(chairNum);
+      if(table==='1'){
+        if(num>=1&&num<=4){ if(num>1) adj.push(`1-${num-1}`); if(num<4) adj.push(`1-${num+1}`); }
+        else if(num>=5&&num<=8){ if(num>5) adj.push(`1-${num-1}`); if(num<8) adj.push(`1-${num+1}`); }
+      } else if(table==='2'){
+        if(num>=9&&num<=12){ if(num>9) adj.push(`2-${num-1}`); if(num<12) adj.push(`2-${num+1}`); }
+        else if(num>=13&&num<=16){ if(num>13) adj.push(`2-${num-1}`); if(num<16) adj.push(`2-${num+1}`); }
+      } else if(table==='3'){
+        if(num>=17&&num<=20){ if(num>17) adj.push(`3-${num-1}`); if(num<20) adj.push(`3-${num+1}`); }
+        else if(num>=21&&num<=24){ if(num>21) adj.push(`3-${num-1}`); if(num<24) adj.push(`3-${num+1}`); }
+      }
+      return adj;
+    }
 
-  if (table === '1') {
-    if (chairNumInt >= 1 && chairNumInt <= 4) { 
-      if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 5 && chairNumInt <= 8) { 
-      if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-  } else if (table === '2') {
-    if (chairNumInt >= 9 && chairNumInt <= 12) { 
-      if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 13 && chairNumInt <= 16) { 
-      if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-  } else if (table === '3') {
-    if (chairNumInt >= 17 && chairNumInt <= 20) { 
-      if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 21 && chairNumInt <= 24) { 
-      if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-  }
-
-  return adjacentChairs;
-}
-    // Click en sillas
     chairs.forEach(chair => {
       chair.addEventListener('click', () => {
-        if (!currentUser) { openLoginModal(); return; }
-        if (!SESSION.canReserve) { showNotification('Las reservas se abren los LUNES y MIÉRCOLES', 'error'); return; }
-
+        if(!currentUser){ openLoginModal(); return; }
+        if(!SESSION.canReserve){ showNotification('Reservas solo lunes y miércoles', 'error'); return; }
         const table = chair.dataset.table;
         const chairNum = chair.dataset.chair;
         const chairId = `${table}-${chairNum}`;
-        // Validar si el miembro es un analista y si se está sentando con un líder
-if (analysts.includes(selectedName)) {
-  const wasSeatedWithLeader = isSeatedWithLeader(selectedName, chairId);
-  if (wasSeatedWithLeader) {
-    showNotification(`${selectedName} no puede sentarse con un líder (Laura, Alan o Jose) dos días consecutivos.`, 'error');
-    return;
-  }
-}
-        // Ya reservada
-        if (reservations[chairId]) {
+        if(analysts.includes(selectedName)){
+          if(isSeatedWithLeader(selectedName, chairId)){
+            showNotification(`${selectedName} no puede sentarse con líder dos días seguidos`, 'error');
+            return;
+          }
+        }
+        if(reservations[chairId]){
           const r = reservations[chairId];
-          if (selectedName && selectedName === r.name) {
+          if(selectedName && selectedName === r.name){
             delete reservations[chairId];
             saveReservations();
             updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-            showNotification(`Reserva cancelada para ${selectedName}`, 'success');
+            showNotification(`Cancelada para ${selectedName}`, 'success');
           } else {
-            showNotification(`Silla ya reservada por ${r.name}. Para cancelar, seleccioná "${r.name}" en el panel.`, 'error');
+            showNotification(`Reservada por ${r.name}. Selecciona el nombre para cancelar`, 'error');
           }
           return;
         }
-
-        // Bloqueada
-        if (blocked[chairId]) {
-          if (currentUser === 'admin') {
-            // Toggle para admin
+        if(blocked[chairId]){
+          if(currentUser === 'admin'){
             delete blocked[chairId];
             saveReservations();
-            showNotification('Silla desbloqueada', 'success');
+            showNotification('Desbloqueada', 'success');
             updateChairDisplay(); updateReservationSummary();
           } else {
-            showNotification('Silla bloqueada por admin', 'error');
+            showNotification('Bloqueada', 'error');
           }
           return;
         }
-
-        // Modo bloqueo para admin (sin nombre seleccionado)
-        if (!selectedName) {
-          if (currentUser === 'admin') {
-            if (reservations[chairId]) {
-              showNotification('No se puede bloquear una silla reservada', 'error');
+        if(!selectedName){
+          if(currentUser === 'admin'){
+            if(reservations[chairId]){
+              showNotification('No se puede bloquear reservada', 'error');
               return;
             }
             blocked[chairId] = true;
             saveReservations();
-            showNotification('Silla bloqueada', 'success');
+            showNotification('Bloqueada', 'success');
             updateChairDisplay(); updateReservationSummary();
             return;
           } else {
-            showNotification('Seleccioná un nombre', 'error'); nameSelect.focus();
+            showNotification('Selecciona nombre', 'error');
+            nameSelect.focus();
             return;
           }
         }
-
-        // Validaciones
-        if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
-        if (!canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
-        if (!canMaintainMixedTeams(table, selectedTeam)) {
-          if (selectedTeam === 'consultoria') showNotification('Máximo 3 de Consultoría por mesa.', 'error');
-          else {
-            let mesasCon5ACCO = 0;
-            for (let t = 1; t <= 3; t++) {
-              let accoEnMesa = 0; let rango = t===1?[1,2,3,4,5,6,7,8]:t===2?[9,10,11,12,13,14,15,16]:[17,18,19,20,21,22,23,24];
-              rango.forEach(n => { const id = `${t}-${n}`; if (reservations[id]?.team === 'acco') accoEnMesa++; });
-              if (accoEnMesa >= 5) mesasCon5ACCO++;
-            }
-            showNotification(mesasCon5ACCO >= 1 ? 'Solo una mesa puede tener 5 de ACCO.' : 'Máximo 5 de ACCO por mesa.', 'error');
-          }
+        if(vacations[selectedTeam].includes(selectedName)){
+          showNotification(`${selectedName} está de vacaciones`, 'error');
           return;
         }
-        if (!canSitInChair(table, chairNum, selectedTeam, selectedName)) {
-          showNotification(selectedTeam === 'consultoria' ? 'Consultoría no puede sentarse junto a otra persona del mismo equipo (excepto Jose).' : 'Máximo 2 ACCO consecutivas.', 'error');
+        if(hasExistingReservation(selectedName)){ showNotification(`${selectedName} ya reservó`, 'error'); return; }
+        if(!canPersonSitAtTable(selectedName, table)){ showNotification('Alan, Jose, Laura en mesas distintas', 'error'); return; }
+        if(!canMaintainMixedTeams(table, selectedTeam)){
+          if(selectedTeam==='consultoria') showNotification('Max 3 consultoría por mesa', 'error');
+          else showNotification('Max 5 ACCO por mesa, solo una con 5', 'error');
           return;
         }
-
-        // No repetir asiento consecutivo
-        const prevSeatId = Object.entries(prevReservations).find(([,r])=> r.name===selectedName)?.[0];
-        if (prevSeatId === chairId) {
-          showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
+        if(!canSitInChair(table, chairNum, selectedTeam, selectedName)){
+          showNotification(selectedTeam==='consultoria' ? 'Consultoría no junto (excepto Jose)' : 'Max 2 ACCO consecutivas', 'error');
           return;
         }
-
-        // Rotación 1→2→3 para Alan/Jose/Laura
-const rot = checkRotationForVIP(selectedName, table);
-if (!rot.allowed) {
-  showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
-  return;
-}
-
-
-        // Hacer reserva
-        reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
+        const prevSeat = Object.entries(prevReservations).find(([,r])=>r.name===selectedName)?.[0];
+        if(prevSeat === chairId){ showNotification('No repetir asiento', 'error'); return; }
+        const rot = checkRotationForVIP(selectedName, table);
+        if(!rot.allowed){ showNotification(`Rotación: ${selectedName} a Mesa ${rot.expected}`, 'error'); return; }
+        reservations[chairId] = {name: selectedName, team: selectedTeam, table, chair: chairNum};
         saveReservations();
-        showNotification(`Silla reservada para ${selectedName}`, 'success');
+        showNotification(`Reservada para ${selectedName}`, 'success');
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       });
     });
 
-    // UI
     function updateChairDisplay(){
-      chairs.forEach(chair=>{
+      chairs.forEach(chair => {
         const table = chair.dataset.table;
         const num = chair.dataset.chair;
-        const id  = `${table}-${num}`;
-        chair.classList.remove('blocked');
-
+        const id = `${table}-${num}`;
+        chair.classList.remove('blocked', 'bg-blue-500', 'bg-green-500', 'bg-red-500', 'border-blue-600', 'border-green-600', 'border-red-600', 'text-white', 'bg-gray-300', 'border-gray-400', 'text-gray-700');
         if(blocked[id]){
           chair.classList.add('blocked');
+          chair.style.cursor = 'not-allowed';
         } else if(reservations[id]){
-          const reservedName = reservations[id].name;
+          const name = reservations[id].name;
           const special = ['Laura','Alan','Jose'];
-          if (special.includes(reservedName)) {
-            chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-red-500').replace(/border-\w+-\d+/, 'border-red-600').replace(/text-\w+-\d+/, 'text-white');
-          } else {
-            const t = reservations[id].team;
-            if (t==='acco') chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-blue-500').replace(/border-\w+-\d+/, 'border-blue-600').replace(/text-\w+-\d+/, 'text-white');
-            else chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-green-500').replace(/border-\w+-\d+/, 'border-green-600').replace(/text-\w+-\d+/, 'text-white');
-          }
-          chair.style.cursor='not-allowed';
+          let bg = special.includes(name) ? 'bg-red-500 border-red-600' : reservations[id].team==='acco' ? 'bg-blue-500 border-blue-600' : 'bg-green-500 border-green-600';
+          chair.classList.add(...bg.split(' '), 'text-white');
+          chair.style.cursor = 'not-allowed';
         } else {
-          chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-gray-300').replace(/border-\w+-\d+/, 'border-gray-400').replace(/text-\w+/, 'text-gray-700');
-          chair.style.cursor='pointer';
+          chair.classList.add('bg-gray-300', 'border-gray-400', 'text-gray-700');
+          chair.style.cursor = 'pointer';
         }
       });
     }
 
     function updatePendingPeople(){
       const reservedNames = Object.values(reservations).map(r => r.name);
-      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n));
-      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n));
+      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n) && !vacations.acco.includes(n));
+      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n) && !vacations.consultoria.includes(n));
+      const vacACCO = teamMembers.acco.filter(n => vacations.acco.includes(n));
+      const vacConsultoria = teamMembers.consultoria.filter(n => vacations.consultoria.includes(n));
 
       let html = '';
       html += `
         <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
           <h4 class="font-semibold text-blue-800 mb-3 flex items-center"><div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>Equipo ACCO (${pendingACCO.length} pendientes)</h4>
-          <div class="space-y-1">${pendingACCO.length? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
+          <div class="space-y-1">${pendingACCO.length ? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos (o de vacaciones)</p>'}</div>
+          ${vacACCO.length ? `<p class="mt-2 text-sm text-gray-600">Vacaciones: ${vacACCO.join(', ')}</p>` : ''}
         </div>`;
       html += `
         <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
           <h4 class="font-semibold text-green-800 mb-3 flex items-center"><div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>Equipo Consultoría (${pendingConsultoria.length} pendientes)</h4>
-          <div class="space-y-1">${pendingConsultoria.length? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
+          <div class="space-y-1">${pendingConsultoria.length ? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos (o de vacaciones)</p>'}</div>
+          ${vacConsultoria.length ? `<p class="mt-2 text-sm text-gray-600">Vacaciones: ${vacConsultoria.join(', ')}</p>` : ''}
         </div>`;
       pendingPeople.innerHTML = html;
     }
 
     function updateReservationSummary(){
-      const summary = {};
-      Object.values(reservations).forEach(r => {
-        if (!summary[r.table]) summary[r.table] = [];
-        summary[r.table].push(r);
-      });
-
+      const summary = {1:[],2:[],3:[]};
+      Object.values(reservations).forEach(r => summary[r.table].push(r));
       let html = '';
-      for (let table = 1; table <= 3; table++) {
-        const tableReservations = summary[table] || [];
-        const tableName = table === 1 ? 'Mesa 1 (Sala Chica)' : `Mesa ${table} (Sala Grande)`;
-        const blockedInTable = Object.keys(blocked).filter(id => id.split('-')[0] === table.toString());
+      for(let t=1; t<=3; t++){
+        const res = summary[t];
+        const tableName = t===1 ? 'Mesa 1 (Chica)' : `Mesa ${t} (Grande)`;
+        const blockedHere = Object.keys(blocked).filter(id => id.startsWith(`${t}-`));
         html += `
           <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-800 mb-2">${tableName}</h4>
-            <div class="space-y-1">`;
-        if (!tableReservations.length && !blockedInTable.length) html += '<p class="text-gray-500 text-sm">Sin reservas ni bloqueos</p>';
-        else {
-          html += tableReservations.map(r => `
-            <div class="text-sm">
-              <span class="font-medium">Silla ${r.chair}:</span>
-              <span class="${r.team==='acco'?'text-blue-600':'text-green-600'}">${r.name}</span>
-              <span class="text-gray-500">(${r.team==='acco'?'ACCO':'Consultoría'})</span>
-            </div>`).join('');
-          html += blockedInTable.map(id => `
-            <div class="text-sm">
-              <span class="font-medium">Silla ${id.split('-')[1]}:</span>
-              <span class="text-gray-600">Bloqueada</span>
-            </div>`).join('');
-        }
-        html += `
+            <div class="space-y-1">
+              ${res.map(r => `<div class="text-sm"><span class="font-medium">Silla ${r.chair}:</span> <span class="${r.team==='acco'?'text-blue-600':'text-green-600'}">${r.name}</span> (${r.team})</div>`).join('')}
+              ${blockedHere.map(id => `<div class="text-sm"><span class="font-medium">Silla ${id.split('-')[1]}:</span> <span class="text-gray-600">Bloqueada</span></div>`).join('')}
+              ${!res.length && !blockedHere.length ? '<p class="text-gray-500 text-sm">Sin reservas ni bloqueos</p>' : ''}
             </div>
             <div class="text-xs text-gray-500 mt-3">Sesión: ${SESSION.nextSessionDate}</div>
           </div>`;
@@ -927,28 +899,117 @@ if (!rot.allowed) {
       reservationSummary.innerHTML = html;
     }
 
-    function showNotification(message, type='success'){
-      const n = document.createElement('div');
-      n.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${type==='success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-      n.textContent = message;
-      document.body.appendChild(n);
-      setTimeout(()=>{ n.style.opacity='0'; setTimeout(()=>document.body.removeChild(n), 300); }, 2500);
+    function showNotification(msg, type='success'){
+      const div = document.createElement('div');
+      div.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${type==='success'?'bg-green-500':'bg-red-500'} text-white`;
+      div.textContent = msg;
+      document.body.appendChild(div);
+      setTimeout(() => { div.style.opacity=0; setTimeout(() => div.remove(), 300); }, 2500);
     }
 
-    // Puente: se llama cuando el SDK modular avisa que está listo
-    window.initFirebaseBridge = function(){
+    function updateVacNameOptions(){
+      const team = vacTeam.value;
+      vacName.innerHTML = '';
+      teamMembers[team].forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name + (vacations[team].includes(name) ? ' (vacaciones)' : '');
+        vacName.appendChild(opt);
+      });
+    }
+
+    vacTeam.addEventListener('change', updateVacNameOptions);
+
+    toggleVacBtn.addEventListener('click', () => {
+      const team = vacTeam.value;
+      const name = vacName.value;
+      if(!name) return showNotification('Selecciona nombre', 'error');
+      const index = vacations[team].indexOf(name);
+      if(index === -1){
+        vacations[team].push(name);
+        // Cancel res if any
+        for(let id in reservations){
+          if(reservations[id].name === name){
+            delete reservations[id];
+            break;
+          }
+        }
+        showNotification(`${name} marcado vacaciones`, 'success');
+      } else {
+        vacations[team].splice(index, 1);
+        showNotification(`${name} quitado vacaciones`, 'success');
+      }
+      saveReservations();
+      updateNameOptions();
+      updatePendingPeople();
+      updateVacNameOptions();
+      updateChairDisplay();
+    });
+
+    function updateMemberList(){
+      const team = manageTeam.value;
+      memberList.innerHTML = '';
+      teamMembers[team].forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center bg-gray-100 p-2 rounded mb-1';
+        div.innerHTML = `<span>${name}</span><button class="text-red-500 hover:text-red-700" data-name="${name}" data-team="${team}">Eliminar</button>`;
+        memberList.appendChild(div);
+      });
+      memberList.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = btn.dataset.team;
+          const n = btn.dataset.name;
+          if(confirm(`¿Eliminar ${n} de ${t.toUpperCase()}?`)){
+            teamMembers[t] = teamMembers[t].filter(m => m !== n);
+            // Remove from vac if any
+            vacations[t] = vacations[t].filter(m => m !== n);
+            saveTeamMembers();
+            saveReservations();
+            updateMemberList();
+            updateNameOptions();
+            updatePendingPeople();
+            updateVacNameOptions();
+            showNotification(`${n} eliminado`, 'success');
+          }
+        });
+      });
+    }
+
+    manageTeam.addEventListener('change', updateMemberList);
+
+    addMemberBtn.addEventListener('click', () => {
+      const team = manageTeam.value;
+      const name = newMemberName.value.trim();
+      if(!name) return showNotification('Ingresa nombre', 'error');
+      if(teamMembers[team].includes(name)) return showNotification('Ya existe', 'error');
+      teamMembers[team].push(name);
+      saveTeamMembers();
+      newMemberName.value = '';
+      updateMemberList();
+      updateNameOptions();
+      updatePendingPeople();
+      updateVacNameOptions();
+      showNotification(`${name} agregado`, 'success');
+    });
+
+    function updateAdminUI(){
+      if(currentUser !== 'admin') return;
+      updateVacNameOptions();
+      updateMemberList();
+    }
+
+    window.initFirebaseBridge = () => {
       isFirebaseReady = true;
+      loadTeamMembers();
       loadReservations();
       updateNameOptions();
-      showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
+      showNotification('Conectado a Firebase', 'success');
     };
 
-    // Boot local inmediato, por si Firebase tarda
     renderSessionBanner();
-    loadReservations(); updateNameOptions(); updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
-
-    // Forzar login al cargar (o autologin)
-    if (!tryAutoLogin()) { openLoginModal(); }
+    loadTeamMembers();
+    loadReservations();
+    if(!tryAutoLogin()) openLoginModal();
   </script>
 </body>
 </html>
