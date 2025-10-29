@@ -51,6 +51,8 @@
     .chair:hover { transform: scale(1.1); }
     .table-container { position: relative; }
     .divider { width: 2px; height: 200px; background: linear-gradient(to bottom, #e5e7eb, #9ca3af, #e5e7eb); margin: 0 2rem; border-radius: 1px; }
+    .chair.blocked { background-color: #1f2937; border-color: #111827; color: #fff; cursor: not-allowed; }
+    .chair.blocked:hover { transform: none; }
   </style>
 </head>
 <body class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
@@ -102,6 +104,10 @@
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-gray-300 rounded border-2 border-gray-400"></div>
           <span class="text-sm font-medium">Disponible</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-gray-800 rounded border-2 border-gray-900"></div>
+          <span class="text-sm font-medium">Bloqueada</span>
         </div>
         <div class="flex items-center gap-2">
           <div id="connectionStatus" class="w-3 h-3 bg-red-400 rounded-full"></div>
@@ -216,6 +222,7 @@
           <p><strong>📱 Multi-dispositivo:</strong> Funciona desde cualquier celular, tablet o computadora</p>
           <p><strong>⚡ Tiempo real:</strong> Cuando alguien reserva, todos lo ven al instante</p>
           <p><strong>🔗 Link para compartir:</strong> <code id="currentUrl" class="bg-green-100 px-2 py-1 rounded text-sm"></code></p>
+          <p><strong>🔒 Admin:</strong> Sin nombre seleccionado, clic en silla para bloquear/desbloquear (solo sillas vacías)</p>
         </div>
       </div>
 
@@ -236,6 +243,7 @@
   <script>
     let reservations = {};
     let prevReservations = {}; // última sesión (para “no repetir asiento”)
+    let blocked = {};
     // Función para cargar las reservas anteriores (esto debe hacerse al cargar la página o al obtener las reservas desde Firebase)
 function loadPrevSessionReservations() {
   const prevPath = `reservations/${SESSION.prevSessionDate}`;
@@ -474,7 +482,7 @@ clearAllBtn.addEventListener('click', () => {
     function saveReservations(){
       const path = `reservations/${SESSION.nextSessionDate}`;
       if(!isFirebaseReady){
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
+        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
         showNotification('Guardado local (sin conexión)', 'error');
         return;
       }
@@ -482,20 +490,21 @@ clearAllBtn.addEventListener('click', () => {
         const reservationsRef = window.firebaseRef(window.firebaseDB, path);
         window.firebaseSet(reservationsRef, {
           data: reservations,
+          blocked: blocked,
           lastUpdate: new Date().toISOString(),
           timestamp: Date.now()
         }).then(()=>{
           updateConnectionStatus(true);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
           showNotification('💾 Guardado en tiempo real', 'success');
         }).catch(()=>{
           updateConnectionStatus(false);
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
           showNotification('Error de conexión - Guardado local', 'error');
         });
       }catch{
         updateConnectionStatus(false);
-        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
+        localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
         showNotification('Error al guardar - Modo local', 'error');
       }
     }
@@ -505,8 +514,11 @@ clearAllBtn.addEventListener('click', () => {
       const prevPath = `reservations/${SESSION.prevSessionDate}`;
 
       if(!isFirebaseReady){
-        reservations     = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
-        prevReservations = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
+        const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
+        reservations = backup.data || {};
+        blocked = backup.blocked || {};
+        const prevBackup = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
+        prevReservations = prevBackup.data || {};
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
         return;
       }
@@ -517,24 +529,30 @@ clearAllBtn.addEventListener('click', () => {
         window.firebaseOnValue(nextRef, (snapshot)=>{
           const data = snapshot.val();
           reservations = (data && data.data) ? data.data : {};
+          blocked = (data && data.blocked) ? data.blocked : {};
           updateConnectionStatus(true);
           updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
-          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify(reservations));
+          localStorage.setItem(`backup_${SESSION.nextSessionDate}`, JSON.stringify({data: reservations, blocked}));
         }, ()=>{
           updateConnectionStatus(false);
-          reservations = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
+          const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
+          reservations = backup.data || {};
+          blocked = backup.blocked || {};
           updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
         });
 
         window.firebaseOnValue(prevRef, (snapshot)=>{
           const data = snapshot.val();
           prevReservations = (data && data.data) ? data.data : {};
-          localStorage.setItem(`backup_${SESSION.prevSessionDate}`, JSON.stringify(prevReservations));
+          localStorage.setItem(`backup_${SESSION.prevSessionDate}`, JSON.stringify({data: prevReservations}));
         }, ()=>{});
       }catch{
         updateConnectionStatus(false);
-        reservations     = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
-        prevReservations = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
+        const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
+        reservations = backup.data || {};
+        blocked = backup.blocked || {};
+        const prevBackup = JSON.parse(localStorage.getItem(`backup_${SESSION.prevSessionDate}`) || '{}');
+        prevReservations = prevBackup.data || {};
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       }
     }
@@ -748,8 +766,39 @@ if (analysts.includes(selectedName)) {
           return;
         }
 
+        // Bloqueada
+        if (blocked[chairId]) {
+          if (currentUser === 'admin') {
+            // Toggle para admin
+            delete blocked[chairId];
+            saveReservations();
+            showNotification('Silla desbloqueada', 'success');
+            updateChairDisplay(); updateReservationSummary();
+          } else {
+            showNotification('Silla bloqueada por admin', 'error');
+          }
+          return;
+        }
+
+        // Modo bloqueo para admin (sin nombre seleccionado)
+        if (!selectedName) {
+          if (currentUser === 'admin') {
+            if (reservations[chairId]) {
+              showNotification('No se puede bloquear una silla reservada', 'error');
+              return;
+            }
+            blocked[chairId] = true;
+            saveReservations();
+            showNotification('Silla bloqueada', 'success');
+            updateChairDisplay(); updateReservationSummary();
+            return;
+          } else {
+            showNotification('Seleccioná un nombre', 'error'); nameSelect.focus();
+            return;
+          }
+        }
+
         // Validaciones
-        if (!selectedName) { showNotification('Seleccioná un nombre', 'error'); nameSelect.focus(); return; }
         if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
         if (!canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
         if (!canMaintainMixedTeams(table, selectedTeam)) {
@@ -799,8 +848,11 @@ if (!rot.allowed) {
         const table = chair.dataset.table;
         const num = chair.dataset.chair;
         const id  = `${table}-${num}`;
+        chair.classList.remove('blocked');
 
-        if(reservations[id]){
+        if(blocked[id]){
+          chair.classList.add('blocked');
+        } else if(reservations[id]){
           const reservedName = reservations[id].name;
           const special = ['Laura','Alan','Jose'];
           if (special.includes(reservedName)) {
@@ -848,17 +900,25 @@ if (!rot.allowed) {
       for (let table = 1; table <= 3; table++) {
         const tableReservations = summary[table] || [];
         const tableName = table === 1 ? 'Mesa 1 (Sala Chica)' : `Mesa ${table} (Sala Grande)`;
+        const blockedInTable = Object.keys(blocked).filter(id => id.split('-')[0] === table.toString());
         html += `
           <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-800 mb-2">${tableName}</h4>
             <div class="space-y-1">`;
-        if (!tableReservations.length) html += '<p class="text-gray-500 text-sm">Sin reservas</p>';
-        else html += tableReservations.map(r => `
+        if (!tableReservations.length && !blockedInTable.length) html += '<p class="text-gray-500 text-sm">Sin reservas ni bloqueos</p>';
+        else {
+          html += tableReservations.map(r => `
             <div class="text-sm">
               <span class="font-medium">Silla ${r.chair}:</span>
               <span class="${r.team==='acco'?'text-blue-600':'text-green-600'}">${r.name}</span>
               <span class="text-gray-500">(${r.team==='acco'?'ACCO':'Consultoría'})</span>
             </div>`).join('');
+          html += blockedInTable.map(id => `
+            <div class="text-sm">
+              <span class="font-medium">Silla ${id.split('-')[1]}:</span>
+              <span class="text-gray-600">Bloqueada</span>
+            </div>`).join('');
+        }
         html += `
             </div>
             <div class="text-xs text-gray-500 mt-3">Sesión: ${SESSION.nextSessionDate}</div>
