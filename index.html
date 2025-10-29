@@ -629,57 +629,37 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
 // Función para comprobar si un analista se sentó con un líder en la sesión anterior
 function isSeatedWithLeader(analystName, selectedChairId) {
   // Verificar si el analista estuvo sentado con un líder en la sesión anterior
+  let leader = null;
   for (let chairId in prevReservations) {
     const reservation = prevReservations[chairId];
     
-    // Si el nombre de la reserva es el del analista y está sentado con un líder
+    // Si el nombre de la reserva es el del analista
     if (reservation.name === analystName) {
-      // Si el líder es uno de los líderes
-      if (leaders.includes(reservation.name)) {
-        return true; // Estuvo con un líder en la sesión anterior
+      // Buscar al líder en la misma mesa
+      const leaderInPreviousSession = leaders.find(leaderName => prevReservations[chairId]?.name === leaderName);
+      
+      if (leaderInPreviousSession) {
+        leader = leaderInPreviousSession; // El analista estuvo con este líder
       }
     }
   }
-  return false;
-}
-
-// Función para obtener las sillas adyacentes (en base a la mesa y número de silla)
-function getAdjacentChairs(table, chairNum) {
-  const adjacentChairs = [];
-  const chairNumInt = parseInt(chairNum);
-
-  if (table === '1') {
-    if (chairNumInt >= 1 && chairNumInt <= 4) { 
-      if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 5 && chairNumInt <= 8) { 
-      if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-  } else if (table === '2') {
-    if (chairNumInt >= 9 && chairNumInt <= 12) { 
-      if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 13 && chairNumInt <= 16) { 
-      if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-  } else if (table === '3') {
-    if (chairNumInt >= 17 && chairNumInt <= 20) { 
-      if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
-    }
-    else if (chairNumInt >= 21 && chairNumInt <= 24) { 
-      if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
-      if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+  
+  // Si hay un líder con el que estuvo, verificar en qué mesa está el líder en la nueva sesión
+  if (leader) {
+    // Buscar si el líder está en la misma mesa
+    const leaderReservations = Object.entries(reservations).filter(([chairId, reservation]) => reservation.name === leader);
+    
+    // Bloquear toda la mesa donde el líder está
+    for (let [chairId, reservation] of leaderReservations) {
+      if (reservation.table === selectedChairId.split('-')[0]) {  // Si la mesa coincide
+        return true; // Impedir que se reserve en la mesa
+      }
     }
   }
 
-  return adjacentChairs;
+  return false;  // Si no hay líder o no está en la misma mesa, se puede reservar
 }
-    // Click en sillas
+
 // Click en sillas
 chairs.forEach(chair => {
   chair.addEventListener('click', () => {
@@ -691,7 +671,7 @@ chairs.forEach(chair => {
     const chairId = `${table}-${chairNum}`;
 
     // Validar si el miembro es un analista y si se está sentando con un líder
-      if (analysts.includes(selectedName)) {
+    if (analysts.includes(selectedName)) {
       const wasSeatedWithLeader = isSeatedWithLeader(selectedName, chairId);
       if (wasSeatedWithLeader) {
         showNotification(`${selectedName} no puede sentarse con el mismo líder (Laura, Alan o Jose) dos días consecutivos.`, 'error');
@@ -752,6 +732,7 @@ chairs.forEach(chair => {
     updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
   });
 });
+
 
     // UI
     function updateChairDisplay(){
@@ -852,6 +833,7 @@ chairs.forEach(chair => {
   </script>
 </body>
 </html>
+
 
 
 
