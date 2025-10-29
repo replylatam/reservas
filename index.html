@@ -331,10 +331,19 @@ function loadPrevSessionReservations() {
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
     function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow=''; }
 
-    function updatePermissionsUI(){
-      if(currentUser==='acco'){ clearAllBtn.classList.remove('hidden'); clearAllBtn.disabled=false; }
-      else { clearAllBtn.classList.add('hidden'); clearAllBtn.disabled=true; }
-    }
+function updatePermissionsUI() {
+  if (currentUser === 'acco') {
+    clearAllBtn.classList.remove('hidden');
+    clearAllBtn.disabled = false;
+  } else if (currentUser === 'admin') {
+    clearAllBtn.classList.remove('hidden');  // Muestra el botón solo para el admin
+    clearAllBtn.disabled = false;
+  } else {
+    clearAllBtn.classList.add('hidden');
+    clearAllBtn.disabled = true;
+  }
+}
+
 
     function setSession(user){
       currentUser = user; // 'acco' | 'consultoria'
@@ -362,17 +371,22 @@ function loadPrevSessionReservations() {
       return false;
     }
 
-    loginForm.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      loginError.classList.add('hidden');
-      const u = loginUser.value.trim().toLowerCase();
-      const p = loginPass.value;
-      const okAcco = (u==='acco' && p==='bloqueado');
-      const okCons = (u==='consultoria' && p==='consultor1234');
-      if(okAcco) return setSession('acco');
-      if(okCons) return setSession('consultoria');
-      loginError.classList.remove('hidden');
-    });
+loginForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  loginError.classList.add('hidden');
+  const u = loginUser.value.trim().toLowerCase();
+  const p = loginPass.value;
+  
+  const okAcco = (u === 'acco' && p === 'bloqueado');
+  const okCons = (u === 'consultoria' && p === 'consultor1234');
+  const okAdmin = (u === 'admin' && p === 'reply'); // Aquí agregamos el admin
+  
+  if (okAcco) return setSession('acco');
+  if (okCons) return setSession('consultoria');
+  if (okAdmin) return setSession('admin');  // Permitir login de admin directamente
+
+  loginError.classList.remove('hidden');
+});
 
     logoutBtn.addEventListener('click',()=>{
       localStorage.removeItem('loggedUser');
@@ -403,17 +417,9 @@ function loadPrevSessionReservations() {
 
     nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
 
-  clearAllBtn.addEventListener('click', () => {
-  if (currentUser !== 'acco') {
-    showNotification('Solo el usuario ACCO puede limpiar todas las reservas', 'error');
-    return;
-  }
-
-  // 🔒 Validar admin
-  const adminUser = prompt('Usuario admin:');
-  const adminPass = prompt('Contraseña admin:');
-  if (adminUser !== 'user' || adminPass !== '1234') {
-    showNotification('Usuario o contraseña de admin incorrectos', 'error');
+clearAllBtn.addEventListener('click', () => {
+  if (currentUser !== 'admin') {
+    showNotification('Solo el usuario ADMIN puede limpiar todas las reservas', 'error');
     return;
   }
 
@@ -429,6 +435,7 @@ function loadPrevSessionReservations() {
   updateNameOptions();
   showNotification('Todas las reservas fueron eliminadas', 'success');
 });
+
 
     shareBtn.addEventListener('click',()=>{
       const url=window.location.href;
@@ -864,6 +871,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
