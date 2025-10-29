@@ -330,9 +330,9 @@ function loadPrevSessionReservations() {
     // ===== Login & permisos =====
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
 function closeLoginModal() {
-  loginModal.classList.add('hidden');  // Oculta el modal
+  loginModal.classList.add('hidden');
   loginModal.classList.remove('flex');
-  document.body.style.overflow = '';   // Restaura el scroll de la página
+  document.body.style.overflow = '';
 }
 function updatePermissionsUI() {
   if (currentUser === 'acco') {
@@ -348,14 +348,13 @@ function updatePermissionsUI() {
 }
 
 function setSession(user) {
-  currentUser = user;  // 'acco' | 'consultoria' | 'admin'
+  currentUser = user;
   localStorage.setItem('loggedUser', user);
   selectedTeam = user;
   localStorage.setItem('selectedTeam', selectedTeam);
   teamSelect.value = user;
   teamSelect.setAttribute('disabled', 'disabled');
   teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
-
   sessionBar.classList.remove('hidden');
   whoami.textContent = user;
   if (user === 'acco') {
@@ -366,12 +365,11 @@ function setSession(user) {
     teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
   } else {
     teamPill.textContent = 'Admin';
-    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700'; // Admin color
+    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700';
   }
-
   updateNameOptions();
   updatePermissionsUI();
-  closeLoginModal(); // Aquí se cierra el modal de login cuando se ingresa correctamente
+  closeLoginModal(); // ← Esto cierra el modal para TODOS (acco, consultoria, admin)
   showNotification('Sesión iniciada', 'success');
 }
 
@@ -393,11 +391,8 @@ loginForm.addEventListener('submit', (e) => {
   
   if (okAcco) return setSession('acco');
   if (okCons) return setSession('consultoria');
-  if (okAdmin) {
-  setSession('admin');
-  closeLoginModal(); // Asegúrate de que esto se ejecute para el admin también
-  return;
-}
+  if (okAdmin) return setSession('admin'); // ← Solo esto
+
   loginError.classList.remove('hidden');
 });
 
@@ -884,6 +879,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
