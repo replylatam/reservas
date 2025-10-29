@@ -755,7 +755,7 @@
 
     chairs.forEach(chair => {
       chair.addEventListener('click', () => {
-        if(!currentUser){ return; } // Ya se mostró al inicio
+        if(!currentUser){ openLoginModal(); return; }
         if(!SESSION.canReserve){ showNotification('Reservas solo lunes y miércoles', 'error'); return; }
         const table = chair.dataset.table;
         const chairNum = chair.dataset.chair;
@@ -1021,13 +1021,11 @@ function updatePendingPeople(){
     renderSessionBanner();
     loadTeamMembers();
     loadReservations();
-    if(!tryAutoLogin()){
-  // Mostrar login al cargar
-  setTimeout(openLoginModal, 100);
-}
+    if(!tryAutoLogin()) openLoginModal();
   </script>
 </body>
 </html>
+
 
 
 
