@@ -34,14 +34,12 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // Exponer helpers para el script no-modular
     window.firebaseDB = database;
     window.firebaseRef = ref;
     window.firebaseSet = set;
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
 
-    // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
   </script>
 
@@ -209,7 +207,7 @@
             Limpiar Todas las Reservas
           </button>
           <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            📱 Compartir Link
+            Compartir Link
           </button>
         </div>
 
@@ -264,13 +262,13 @@
 
       <!-- Instrucciones de Uso -->
       <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
-        <h3 class="text-lg font-semibold text-green-800 mb-2">🚀 Sistema en Tiempo Real Activado:</h3>
+        <h3 class="text-lg font-semibold text-green-800 mb-2">Sistema en Tiempo Real Activado:</h3>
         <div class="text-green-700 space-y-2">
-          <p><strong>✅ Base de datos real:</strong> Todas las reservas se sincronizan automáticamente</p>
-          <p><strong>📱 Multi-dispositivo:</strong> Funciona desde cualquier celular, tablet o computadora</p>
-          <p><strong>⚡ Tiempo real:</strong> Cuando alguien reserva, todos lo ven al instante</p>
-          <p><strong>🔗 Link para compartir:</strong> <code id="currentUrl" class="bg-green-100 px-2 py-1 rounded text-sm"></code></p>
-          <p><strong>🔒 Admin:</strong> Sin nombre seleccionado, clic en silla para bloquear/desbloquear (solo sillas vacías)</p>
+          <p><strong>Base de datos real:</strong> Todas las reservas se sincronizan automáticamente</p>
+          <p><strong>Multi-dispositivo:</strong> Funciona desde cualquier celular, tablet o computadora</p>
+          <p><strong>Tiempo real:</strong> Cuando alguien reserva, todos lo ven al instante</p>
+          <p><strong>Link para compartir:</strong> <code id="currentUrl" class="bg-green-100 px-2 py-1 rounded text-sm"></code></p>
+          <p><strong>Admin:</strong> Sin nombre seleccionado, clic en silla para bloquear/desbloquear (solo sillas vacías)</p>
         </div>
       </div>
 
@@ -299,20 +297,7 @@
       consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
     };
 
-    function loadPrevSessionReservations() {
-      const prevPath = `reservations/${SESSION.prevSessionDate}`;
-      try {
-        const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
-        window.firebaseOnValue(prevRef, (snapshot) => {
-          const data = snapshot.val();
-          prevReservations = data ? data.data : {};
-        });
-      } catch (e) {
-        console.error("Error al cargar las reservas previas:", e);
-      }
-    }
-
-    let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
+    let selectedTeam = 'acco';
     let selectedName = '';
     let currentUser = null;
 
@@ -388,8 +373,18 @@
         </div>`;
     }
 
-    function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
-    function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow = ''; }
+    function openLoginModal(){ 
+      loginModal.classList.remove('hidden'); 
+      loginModal.classList.add('flex'); 
+      document.body.style.overflow='hidden'; 
+      loginUser.focus(); 
+    }
+    function closeLoginModal(){ 
+      loginModal.classList.add('hidden'); 
+      loginModal.classList.remove('flex'); 
+      document.body.style.overflow = ''; 
+    }
+
     function updatePermissionsUI(){
       if(currentUser === 'admin' || currentUser === 'acco'){
         clearAllBtn.classList.remove('hidden');
@@ -405,9 +400,8 @@
 
     function setSession(user){
       currentUser = user;
-      localStorage.setItem('loggedUser', user);
       if(user === 'admin'){
-        selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
+        selectedTeam = 'acco';
         teamSelect.removeAttribute('disabled');
         teamSelect.classList.remove('opacity-70', 'cursor-not-allowed');
       } else {
@@ -416,7 +410,6 @@
         teamSelect.setAttribute('disabled', 'disabled');
         teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
       }
-      localStorage.setItem('selectedTeam', selectedTeam);
       teamSelect.value = selectedTeam;
 
       sessionBar.classList.remove('hidden');
@@ -439,15 +432,6 @@
       showNotification('Sesión iniciada', 'success');
     }
 
-    function tryAutoLogin(){
-      const saved = localStorage.getItem('loggedUser');
-      if(saved && (saved==='acco' || saved==='consultoria' || saved==='admin')){
-        setSession(saved);
-        return true;
-      }
-      return false;
-    }
-
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       loginError.classList.add('hidden');
@@ -460,7 +444,6 @@
     });
 
     logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('loggedUser');
       showNotification('Sesión cerrada');
       location.reload();
     });
@@ -484,7 +467,6 @@
 
     teamSelect.addEventListener('change', (e) => {
       selectedTeam = e.target.value;
-      localStorage.setItem('selectedTeam', selectedTeam);
       updateNameOptions();
     });
 
@@ -855,38 +837,38 @@
       });
     }
 
-function updatePendingPeople(){
-  const reservedNames = Object.values(reservations).map(r => r.name);
-  const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n) && !vacations.acco.includes(n));
-  const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n) && !vacations.consultoria.includes(n));
-  const vacACCO = vacations.acco;
-  const vacConsultoria = vacations.consultoria;
+    function updatePendingPeople(){
+      const reservedNames = Object.values(reservations).map(r => r.name);
+      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n) && !vacations.acco.includes(n));
+      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n) && !vacations.consultoria.includes(n));
+      const vacACCO = vacations.acco;
+      const vacConsultoria = vacations.consultoria;
 
-  let html = '';
-  html += `
-    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-      <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
-        <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-        Equipo ACCO (${pendingACCO.length} pendientes)
-      </h4>
-      <div class="space-y-1">
-        ${pendingACCO.length ? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
-      </div>
-      ${vacACCO.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacACCO.join(', ')}</p>` : ''}
-    </div>`;
-  html += `
-    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-      <h4 class="font-semibold text-green-800 mb-3 flex items-center">
-        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-        Equipo Consultoría (${pendingConsultoria.length} pendientes)
-      </h4>
-      <div class="space-y-1">
-        ${pendingConsultoria.length ? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
-      </div>
-      ${vacConsultoria.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacConsultoria.join(', ')}</p>` : ''}
-    </div>`;
-  pendingPeople.innerHTML = html;
-}
+      let html = '';
+      html += `
+        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+          <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+            <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+            Equipo ACCO (${pendingACCO.length} pendientes)
+          </h4>
+          <div class="space-y-1">
+            ${pendingACCO.length ? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
+          </div>
+          ${vacACCO.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacACCO.join(', ')}</p>` : ''}
+        </div>`;
+      html += `
+        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+          <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+            Equipo Consultoría (${pendingConsultoria.length} pendientes)
+          </h4>
+          <div class="space-y-1">
+            ${pendingConsultoria.length ? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
+          </div>
+          ${vacConsultoria.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacConsultoria.join(', ')}</p>` : ''}
+        </div>`;
+      pendingPeople.innerHTML = html;
+    }
 
     function updateReservationSummary(){
       const summary = {1:[],2:[],3:[]};
@@ -938,7 +920,6 @@ function updatePendingPeople(){
       const index = vacations[team].indexOf(name);
       if(index === -1){
         vacations[team].push(name);
-        // Cancel res if any
         for(let id in reservations){
           if(reservations[id].name === name){
             delete reservations[id];
@@ -972,7 +953,6 @@ function updatePendingPeople(){
           const n = btn.dataset.name;
           if(confirm(`¿Eliminar ${n} de ${t.toUpperCase()}?`)){
             teamMembers[t] = teamMembers[t].filter(m => m !== n);
-            // Remove from vac if any
             vacations[t] = vacations[t].filter(m => m !== n);
             saveTeamMembers();
             saveReservations();
@@ -1020,35 +1000,8 @@ function updatePendingPeople(){
     renderSessionBanner();
     loadTeamMembers();
     loadReservations();
-if(!tryAutoLogin()){
-  setTimeout(() => {
-    openLoginModal();
-  }, 100);
-}  </script>
+    setTimeout(() => openLoginModal(), 100);
+  </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
