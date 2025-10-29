@@ -610,23 +610,23 @@ function checkRotationForVIP(name, targetTable){
   const vip = ['Alan','Jose','Laura'];
   if (!vip.includes(name)) return { allowed: true };
 
-  // Semilla si no hay histórico (solo primera vez)
-const seed = { Alan: 1, Laura: 2, Jose: 3 };
-if (!prevEntry) {
-  const must = seed[name];
-  return { allowed: parseInt(targetTable,10) === must, expected: must };
-}
+  // Verificamos si prevReservations está cargada
+  if (Object.keys(prevReservations).length === 0) {
+    console.error("prevReservations no está cargada aún.");
+    return { allowed: true }; // Si no está cargada, permitimos la reserva
+  }
 
   // Buscar la mesa de la sesión anterior para esta persona
   const prevEntry = Object.entries(prevReservations).find(([, r]) => r.name === name);
-  if (!prevEntry) return { allowed: true }; // si no tiene histórico, no forzamos inicio
+  if (!prevEntry) return { allowed: true }; // Si no tiene historial, no forzamos inicio
 
   const prevTable = parseInt(prevEntry[1].table, 10); // '1'|'2'|'3' → 1|2|3
-  const expected = ((prevTable + 1) % 3) + 1;             // 1→2, 2→3, 3→1
+  const expected = (prevTable % 3) + 1;               // 1→2, 2→3, 3→1
   const ok = (parseInt(targetTable, 10) === expected);
 
   return { allowed: ok, expected };
 }
+
 // Nombres de los líderes y analistas
 const leaders = ['Laura', 'Alan', 'Jose'];
 const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'];
@@ -864,6 +864,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
