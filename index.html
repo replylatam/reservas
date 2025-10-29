@@ -329,32 +329,62 @@ function loadPrevSessionReservations() {
 
     // ===== Login & permisos =====
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
-    function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow=''; }
+function closeLoginModal() {
+  loginModal.classList.add('hidden');
+  loginModal.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+function updatePermissionsUI() {
+  if (currentUser === 'acco') {
+    clearAllBtn.classList.remove('hidden');
+    clearAllBtn.disabled = false;
+  } else if (currentUser === 'admin') {
+    clearAllBtn.classList.remove('hidden');  // Muestra el botón solo para el admin
+    clearAllBtn.disabled = false;
+  } else {
+    clearAllBtn.classList.add('hidden');
+    clearAllBtn.disabled = true;
+  }
+}
 
-    function updatePermissionsUI(){
-      if(currentUser==='acco'){ clearAllBtn.classList.remove('hidden'); clearAllBtn.disabled=false; }
-      else { clearAllBtn.classList.add('hidden'); clearAllBtn.disabled=true; }
-    }
+function setSession(user) {
+  currentUser = user;
+  localStorage.setItem('loggedUser', user);
 
-    function setSession(user){
-      currentUser = user; // 'acco' | 'consultoria'
-      localStorage.setItem('loggedUser', user);
-      selectedTeam = user;
-      localStorage.setItem('selectedTeam', selectedTeam);
-      teamSelect.value = user;
-      teamSelect.setAttribute('disabled','disabled');
-      teamSelect.classList.add('opacity-70','cursor-not-allowed');
+  // Admin puede cambiar de equipo
+  if (user === 'admin') {
+    selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
+    teamSelect.removeAttribute('disabled');
+    teamSelect.classList.remove('opacity-70', 'cursor-not-allowed');
+  } else {
+    selectedTeam = user;
+    teamSelect.value = user;
+    teamSelect.setAttribute('disabled', 'disabled');
+    teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
+  }
 
-      sessionBar.classList.remove('hidden');
-      whoami.textContent = user;
-      if(user==='acco'){ teamPill.textContent='ACCO'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700'; }
-      else { teamPill.textContent='Consultoría'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'; }
+  localStorage.setItem('selectedTeam', selectedTeam);
+  teamSelect.value = selectedTeam;
 
-      updateNameOptions();
-      updatePermissionsUI();
-      closeLoginModal();
-      showNotification('Sesión iniciada','success');
-    }
+  sessionBar.classList.remove('hidden');
+  whoami.textContent = user;
+
+  if (user === 'acco') {
+    teamPill.textContent = 'ACCO';
+    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
+  } else if (user === 'consultoria') {
+    teamPill.textContent = 'Consultoría';
+    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
+  } else {
+    teamPill.textContent = 'Admin';
+    teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700';
+  }
+
+  updateNameOptions(); // ← ahora no falla
+  updatePermissionsUI();
+  closeLoginModal();
+  showNotification('Sesión iniciada', 'success');
+}
 
     function tryAutoLogin(){
       const saved=localStorage.getItem('loggedUser');
@@ -362,17 +392,22 @@ function loadPrevSessionReservations() {
       return false;
     }
 
-    loginForm.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      loginError.classList.add('hidden');
-      const u = loginUser.value.trim().toLowerCase();
-      const p = loginPass.value;
-      const okAcco = (u==='acco' && p==='bloqueado');
-      const okCons = (u==='consultoria' && p==='consultor1234');
-      if(okAcco) return setSession('acco');
-      if(okCons) return setSession('consultoria');
-      loginError.classList.remove('hidden');
-    });
+loginForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  loginError.classList.add('hidden');
+  const u = loginUser.value.trim().toLowerCase();
+  const p = loginPass.value;
+  
+  const okAcco = (u === 'acco' && p === 'bloqueado');
+  const okCons = (u === 'consultoria' && p === 'consultor1234');
+  const okAdmin = (u === 'admin' && p === 'reply'); // Aquí agregamos el admin
+  
+  if (okAcco) return setSession('acco');
+  if (okCons) return setSession('consultoria');
+  if (okAdmin) return setSession('admin'); // ← Solo esto
+
+  loginError.classList.remove('hidden');
+});
 
     logoutBtn.addEventListener('click',()=>{
       localStorage.removeItem('loggedUser');
@@ -384,7 +419,7 @@ function loadPrevSessionReservations() {
     function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
 
     function updateNameOptions(){
-      const members = teamMembers[selectedTeam];
+      const members = teamMembers[selectedTeam] || []; // ← AÑADE || []
       nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
       members.forEach(member=>{
         const option = document.createElement('option');
@@ -403,17 +438,9 @@ function loadPrevSessionReservations() {
 
     nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
 
-  clearAllBtn.addEventListener('click', () => {
-  if (currentUser !== 'acco') {
-    showNotification('Solo el usuario ACCO puede limpiar todas las reservas', 'error');
-    return;
-  }
-
-  // 🔒 Validar admin
-  const adminUser = prompt('Usuario admin:');
-  const adminPass = prompt('Contraseña admin:');
-  if (adminUser !== 'user' || adminPass !== '1234') {
-    showNotification('Usuario o contraseña de admin incorrectos', 'error');
+clearAllBtn.addEventListener('click', () => {
+  if (currentUser !== 'admin') {
+    showNotification('Solo el usuario ADMIN puede limpiar todas las reservas', 'error');
     return;
   }
 
@@ -429,6 +456,7 @@ function loadPrevSessionReservations() {
   updateNameOptions();
   showNotification('Todas las reservas fueron eliminadas', 'success');
 });
+
 
     shareBtn.addEventListener('click',()=>{
       const url=window.location.href;
@@ -864,6 +892,8 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
+
 
 
 
