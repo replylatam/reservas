@@ -348,6 +348,7 @@ function updatePermissionsUI() {
 }
 
 function setSession(user) {
+  console.log('setSession llamado con:', user); // <--- AÑADE ESTO
   currentUser = user;
   localStorage.setItem('loggedUser', user);
   selectedTeam = user;
@@ -879,6 +880,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
