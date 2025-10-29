@@ -632,27 +632,16 @@ function isSeatedWithLeader(analystName, selectedChairId) {
   for (let chairId in prevReservations) {
     const reservation = prevReservations[chairId];
     
-    // Si el nombre de la reserva es el del analista y está sentado junto a un líder
+    // Si el nombre de la reserva es el del analista y está sentado con un líder
     if (reservation.name === analystName) {
-      const adjacentChairs = getAdjacentChairs(reservation.table, reservation.chair);
-      
-      // Comprobar si está sentado junto a algún líder
-      for (let adjacentChairId of adjacentChairs) {
-        const adjacentReservation = prevReservations[adjacentChairId];
-        if (adjacentReservation && leaders.includes(adjacentReservation.name)) {
-          // El analista estuvo en la misma mesa con el líder en la sesión anterior
-          // Ahora verificamos si está intentando sentarse con el mismo líder
-          if (reservation.table === selectedChairId.split('-')[0]) {
-            return true; // El analista estuvo con el líder en la sesión anterior
-          }
-        }
+      // Si el líder es uno de los líderes
+      if (leaders.includes(reservation.name)) {
+        return true; // Estuvo con un líder en la sesión anterior
       }
     }
   }
-  return false; // No está sentado junto a un líder en la misma mesa
+  return false;
 }
-
-
 
 // Función para obtener las sillas adyacentes (en base a la mesa y número de silla)
 function getAdjacentChairs(table, chairNum) {
@@ -863,6 +852,7 @@ chairs.forEach(chair => {
   </script>
 </body>
 </html>
+
 
 
 
