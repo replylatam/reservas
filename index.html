@@ -18,7 +18,7 @@
   <!-- Firebase SDK (MÓDULO) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+    import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
@@ -40,7 +40,6 @@
     window.firebaseSet = set;
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
-    window.firebaseGet = get;
 
     // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
@@ -318,50 +317,30 @@
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
     function closeLoginModal(){ loginModal.classList.add('hidden'); loginModal.classList.remove('flex'); document.body.style.overflow=''; }
 
-function updatePermissionsUI(){
-  if(currentUser==='acco' || currentUser==='admin'){
-    clearAllBtn.classList.remove('hidden');
-    clearAllBtn.disabled = false;
-  } else {
-    clearAllBtn.classList.add('hidden');
-    clearAllBtn.disabled = true;
-  }
-}
+    function updatePermissionsUI(){
+      if(currentUser==='acco'){ clearAllBtn.classList.remove('hidden'); clearAllBtn.disabled=false; }
+      else { clearAllBtn.classList.add('hidden'); clearAllBtn.disabled=true; }
+    }
 
     function setSession(user){
-  currentUser = user; // 'acco' | 'consultoria' | 'admin'
-  localStorage.setItem('loggedUser', user);
-  selectedTeam = user === 'admin' ? 'acco' : user;
-  localStorage.setItem('selectedTeam', selectedTeam);
-  teamSelect.value = selectedTeam;
+      currentUser = user; // 'acco' | 'consultoria'
+      localStorage.setItem('loggedUser', user);
+      selectedTeam = user;
+      localStorage.setItem('selectedTeam', selectedTeam);
+      teamSelect.value = user;
+      teamSelect.setAttribute('disabled','disabled');
+      teamSelect.classList.add('opacity-70','cursor-not-allowed');
 
-  // Bloquear selector de equipo si no es admin
-  if (user !== 'admin') {
-    teamSelect.setAttribute('disabled','disabled');
-    teamSelect.classList.add('opacity-70','cursor-not-allowed');
-  } else {
-    teamSelect.removeAttribute('disabled');
-    teamSelect.classList.remove('opacity-70','cursor-not-allowed');
-  }
+      sessionBar.classList.remove('hidden');
+      whoami.textContent = user;
+      if(user==='acco'){ teamPill.textContent='ACCO'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700'; }
+      else { teamPill.textContent='Consultoría'; teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'; }
 
-  sessionBar.classList.remove('hidden');
-  whoami.textContent = user;
-  if (user === 'acco') {
-    teamPill.textContent='ACCO';
-    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
-  } else if (user === 'consultoria') {
-    teamPill.textContent='Consultoría';
-    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700';
-  } else {
-    teamPill.textContent='ADMIN';
-    teamPill.className='px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700';
-  }
-
-  updateNameOptions();
-  updatePermissionsUI();
-  closeLoginModal();
-  showNotification('Sesión iniciada','success');
-}
+      updateNameOptions();
+      updatePermissionsUI();
+      closeLoginModal();
+      showNotification('Sesión iniciada','success');
+    }
 
     function tryAutoLogin(){
       const saved=localStorage.getItem('loggedUser');
@@ -376,10 +355,8 @@ function updatePermissionsUI(){
       const p = loginPass.value;
       const okAcco = (u==='acco' && p==='botaco1234');
       const okCons = (u==='consultoria' && p==='consultor1234');
-      const okAdmin = (u==='admin' && p==='reply');
       if(okAcco) return setSession('acco');
       if(okCons) return setSession('consultoria');
-      if (okAdmin) return setSession('admin');
       loginError.classList.remove('hidden');
     });
 
@@ -690,6 +667,8 @@ if (!rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
+
+
         // Hacer reserva
         reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
         saveReservations();
@@ -697,93 +676,6 @@ if (!rot.allowed) {
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       });
     });
-    // ===== Funcionalidad extra: ADMIN puede anular o desbloquear sillas =====
-if (currentUser === 'admin') {
-  chairs.forEach(chair => {
-    chair.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); // Prevenir el menú contextual predeterminado
-
-      const chairId = `${chair.dataset.table}-${chair.dataset.chair}`;
-      if (reservations[chairId]?.blocked) {
-        // Si la silla está bloqueada, desbloquearla
-        delete reservations[chairId]; 
-        showNotification(`Silla ${chairId} desbloqueada.`, 'success');
-      } else {
-        // Si no está bloqueada, bloquearla
-        reservations[chairId] = { blocked: true }; 
-        showNotification(`Silla ${chairId} bloqueada.`, 'error');
-      }
-      saveReservations();
-      updateChairDisplay();
-    });
-  });
-}
-
-      if (currentUser === 'admin') {
-  const adminPanel = document.createElement('div');
-  adminPanel.className = 'mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg';
-  adminPanel.innerHTML = `
-    <h3 class="font-semibold text-yellow-800 mb-2">Panel del Administrador</h3>
-    <div class="flex flex-wrap gap-3">
-      <input id="newPersonName" type="text" placeholder="Nombre nuevo..." class="border p-2 rounded w-48"/>
-      <select id="newPersonTeam" class="border p-2 rounded">
-        <option value="acco">Equipo ACCO</option>
-        <option value="consultoria">Equipo Consultoría</option>
-      </select>
-      <button id="addPersonBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">➕ Agregar Persona</button>
-    </div>
-    <div class="mt-4">
-      <h4 class="text-sm font-semibold mb-1 text-yellow-700">Marcar vacaciones</h4>
-      <select id="vacationSelect" class="border p-2 rounded w-64">
-        <option value="">Seleccionar persona...</option>
-      </select>
-      <button id="toggleVacationBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded">🏖️ Alternar Vacaciones</button>
-    </div>`;
-  document.querySelector('.bg-white.rounded-lg.shadow-lg.p-6').after(adminPanel);
-
-  // Rellenar vacaciones
-  const vacationSelect = document.getElementById('vacationSelect');
-  [...teamMembers.acco, ...teamMembers.consultoria].forEach(n => {
-    const opt = document.createElement('option');
-    opt.value = n; opt.textContent = n;
-    vacationSelect.appendChild(opt);
-  });
-
-  const vacationList = JSON.parse(localStorage.getItem('vacations') || '[]');
-
-  document.getElementById('addPersonBtn').addEventListener('click',()=>{
-    const name = document.getElementById('newPersonName').value.trim();
-    const team = document.getElementById('newPersonTeam').value;
-    if(!name) return showNotification('Debe ingresar un nombre','error');
-    if(teamMembers[team].includes(name)) return showNotification('Ya existe','error');
-    teamMembers[team].push(name);
-    updateNameOptions();
-    showNotification(`${name} agregado a ${team.toUpperCase()}`,'success');
-  });
-
-  document.getElementById('toggleVacationBtn').addEventListener('click',()=>{
-    const name = vacationSelect.value;
-    if(!name) return;
-    const idx = vacationList.indexOf(name);
-    if(idx>=0){ vacationList.splice(idx,1); showNotification(`${name} volvió de vacaciones`,'success'); }
-    else { vacationList.push(name); showNotification(`${name} está de vacaciones`,'error'); }
-    localStorage.setItem('vacations', JSON.stringify(vacationList));
-    updateNameOptions();
-  });
-
-  // Integrar vacaciones al sistema
-  const originalUpdateNameOptions = updateNameOptions;
-  updateNameOptions = function(){
-    originalUpdateNameOptions();
-    const vacations = JSON.parse(localStorage.getItem('vacations') || '[]');
-    document.querySelectorAll('#nameSelect option').forEach(opt=>{
-      if(vacations.includes(opt.value)){
-        opt.textContent += ' 🌴 (vacaciones)';
-        opt.disabled = true;
-      }
-    });
-  };
-}
 
     // UI
     function updateChairDisplay(){
@@ -872,7 +764,6 @@ if (currentUser === 'admin') {
       isFirebaseReady = true;
       loadReservations();
       updateNameOptions();
-      console.log("Firebase está listo"); // Verifica que Firebase se ha cargado
       showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
     };
 
@@ -882,83 +773,10 @@ if (currentUser === 'admin') {
 
     // Forzar login al cargar (o autologin)
     if (!tryAutoLogin()) { openLoginModal(); }
-      // ====== HISTÓRICO DE ASIENTOS ======
-  const historyBtn = document.createElement('button');
-  historyBtn.textContent = '📜 Histórico de Asientos';
-  historyBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors';
-  document.querySelector('.flex.gap-4').appendChild(historyBtn);
-
-  // Modal de histórico
-  const historyModal = document.createElement('div');
-  historyModal.id = 'historyModal';
-  historyModal.className = 'fixed inset-0 hidden items-center justify-center z-50';
-  historyModal.innerHTML = `
-    <div class="absolute inset-0 bg-black/50"></div>
-    <div class="relative bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-      <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Histórico de Asientos</h2>
-      <input id="filterName" type="text" placeholder="Filtrar por nombre..." class="w-full border rounded-lg p-2 mb-4"/>
-      <div id="historyContent" class="space-y-4"></div>
-      <div class="text-center mt-4">
-        <button id="closeHistoryBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg">Cerrar</button>
-      </div>
-    </div>`;
-  document.body.appendChild(historyModal);
-
-  historyBtn.addEventListener('click', async () => {
-    const historyContent = document.getElementById('historyContent');
-    historyContent.innerHTML = '<p class="text-gray-500 text-center">Cargando...</p>';
-
-    const db = window.firebaseDB;
-    const refFunc = window.firebaseRef;
-    const getFunc = window.firebaseGet;
-    const allPath = refFunc(db, 'reservations');
-
-    try {
-      const snapshot = await getFunc(allPath);
-      const allData = snapshot.val();
-      if (!allData) {
-        historyContent.innerHTML = '<p class="text-gray-500 text-center">No hay registros previos.</p>';
-        return;
-      }
-
-      const ordered = Object.entries(allData)
-        .sort(([a], [b]) => new Date(b) - new Date(a))
-        .slice(0, 20); // muestra últimos 20
-
-      historyContent.innerHTML = ordered.map(([date, data]) => {
-        const reservas = data.data || {};
-        const list = Object.values(reservas)
-          .map(r => `<div class="text-sm text-gray-700 border-b py-1"><strong>${r.name}</strong> (${r.team}) — Mesa ${r.table}, Silla ${r.chair}</div>`)
-          .join('');
-        return `<div class="bg-gray-50 rounded-lg p-3 shadow">
-          <h3 class="font-semibold text-gray-800 mb-2">Sesión ${date}</h3>
-          ${list || '<p class="text-gray-500 text-sm">Sin reservas</p>'}
-        </div>`;
-      }).join('');
-    } catch (e) {
-      historyContent.innerHTML = `<p class="text-red-500 text-center">Error al cargar histórico.</p>`;
-      console.error(e);
-    }
-
-    historyModal.classList.remove('hidden');
-    historyModal.classList.add('flex');
-  });
-
-  document.getElementById('closeHistoryBtn').addEventListener('click', () => {
-    historyModal.classList.add('hidden');
-    historyModal.classList.remove('flex');
-  });
-
-  document.getElementById('filterName').addEventListener('input', (e) => {
-    const filter = e.target.value.toLowerCase();
-    document.querySelectorAll('#historyContent > div').forEach(div => {
-      div.style.display = div.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-  });
-  
   </script>
 </body>
 </html>
+
 
 
 
