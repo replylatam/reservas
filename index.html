@@ -621,7 +621,7 @@ function checkRotationForVIP(name, targetTable){
   if (!prevEntry) return { allowed: true }; // Si no tiene historial, no forzamos inicio
 
   const prevTable = parseInt(prevEntry[1].table, 10); // '1'|'2'|'3' → 1|2|3
-  const expected = (prevTable % 3) + 1;               // 1→2, 2→3, 3→1
+  const expected = ((prevTable + 1) % 3) + 1;           // 1→2, 2→3, 3→1
   const ok = (parseInt(targetTable, 10) === expected);
 
   return { allowed: ok, expected };
@@ -864,6 +864,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
