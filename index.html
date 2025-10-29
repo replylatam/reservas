@@ -755,7 +755,7 @@
 
     chairs.forEach(chair => {
       chair.addEventListener('click', () => {
-        if(!currentUser){ openLoginModal(); return; }
+        if(!currentUser){ return; } // Ya se mostró al inicio
         if(!SESSION.canReserve){ showNotification('Reservas solo lunes y miércoles', 'error'); return; }
         const table = chair.dataset.table;
         const chairNum = chair.dataset.chair;
@@ -784,6 +784,7 @@
             saveReservations();
             showNotification('Desbloqueada', 'success');
             updateChairDisplay(); updateReservationSummary();
+            updateNameOptions();
           } else {
             showNotification('Bloqueada', 'error');
           }
@@ -799,6 +800,7 @@
             saveReservations();
             showNotification('Bloqueada', 'success');
             updateChairDisplay(); updateReservationSummary();
+            updateNameOptions();
             return;
           } else {
             showNotification('Selecciona nombre', 'error');
@@ -854,28 +856,38 @@
       });
     }
 
-    function updatePendingPeople(){
-      const reservedNames = Object.values(reservations).map(r => r.name);
-      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n) && !vacations.acco.includes(n));
-      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n) && !vacations.consultoria.includes(n));
-      const vacACCO = teamMembers.acco.filter(n => vacations.acco.includes(n));
-      const vacConsultoria = teamMembers.consultoria.filter(n => vacations.consultoria.includes(n));
+function updatePendingPeople(){
+  const reservedNames = Object.values(reservations).map(r => r.name);
+  const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n) && !vacations.acco.includes(n));
+  const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n) && !vacations.consultoria.includes(n));
+  const vacACCO = vacations.acco;
+  const vacConsultoria = vacations.consultoria;
 
-      let html = '';
-      html += `
-        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-          <h4 class="font-semibold text-blue-800 mb-3 flex items-center"><div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>Equipo ACCO (${pendingACCO.length} pendientes)</h4>
-          <div class="space-y-1">${pendingACCO.length ? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos (o de vacaciones)</p>'}</div>
-          ${vacACCO.length ? `<p class="mt-2 text-sm text-gray-600">Vacaciones: ${vacACCO.join(', ')}</p>` : ''}
-        </div>`;
-      html += `
-        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-          <h4 class="font-semibold text-green-800 mb-3 flex items-center"><div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>Equipo Consultoría (${pendingConsultoria.length} pendientes)</h4>
-          <div class="space-y-1">${pendingConsultoria.length ? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos (o de vacaciones)</p>'}</div>
-          ${vacConsultoria.length ? `<p class="mt-2 text-sm text-gray-600">Vacaciones: ${vacConsultoria.join(', ')}</p>` : ''}
-        </div>`;
-      pendingPeople.innerHTML = html;
-    }
+  let html = '';
+  html += `
+    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+      <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+        <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+        Equipo ACCO (${pendingACCO.length} pendientes)
+      </h4>
+      <div class="space-y-1">
+        ${pendingACCO.length ? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
+      </div>
+      ${vacACCO.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacACCO.join(', ')}</p>` : ''}
+    </div>`;
+  html += `
+    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+      <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+        Equipo Consultoría (${pendingConsultoria.length} pendientes)
+      </h4>
+      <div class="space-y-1">
+        ${pendingConsultoria.length ? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">Todos reservados o de vacaciones</p>'}
+      </div>
+      ${vacConsultoria.length ? `<p class="mt-3 text-xs text-orange-600"><strong>De vacaciones:</strong> ${vacConsultoria.join(', ')}</p>` : ''}
+    </div>`;
+  pendingPeople.innerHTML = html;
+}
 
     function updateReservationSummary(){
       const summary = {1:[],2:[],3:[]};
@@ -1009,10 +1021,14 @@
     renderSessionBanner();
     loadTeamMembers();
     loadReservations();
-    if(!tryAutoLogin()) openLoginModal();
+    if(!tryAutoLogin()){
+  // Mostrar login al cargar
+  setTimeout(openLoginModal, 100);
+}
   </script>
 </body>
 </html>
+
 
 
 
