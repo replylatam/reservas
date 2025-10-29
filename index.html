@@ -369,8 +369,10 @@ function loadPrevSessionReservations() {
       const p = loginPass.value;
       const okAcco = (u==='acco' && p==='botaco1234');
       const okCons = (u==='consultoria' && p==='consultor1234');
+      const okAdmin = (u==='admin' && p==='reply');
       if(okAcco) return setSession('acco');
       if(okCons) return setSession('consultoria');
+      if(okAdmin) return setSession('admin');  // Nueva validación para el admin
       loginError.classList.remove('hidden');
     });
 
@@ -857,6 +859,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
