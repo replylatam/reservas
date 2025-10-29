@@ -628,36 +628,32 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
 
 // Función para comprobar si un analista se sentó con un líder en la sesión anterior
 function isSeatedWithLeader(analystName, selectedChairId) {
-  // Verificar si el analista estuvo sentado con un líder en la sesión anterior
   let leader = null;
+
+  // Buscar al líder con el que el analista se sentó en la sesión anterior
   for (let chairId in prevReservations) {
     const reservation = prevReservations[chairId];
     
     // Si el nombre de la reserva es el del analista
     if (reservation.name === analystName) {
-      // Buscar al líder en la misma mesa
-      const leaderInPreviousSession = leaders.find(leaderName => prevReservations[chairId]?.name === leaderName);
-      
-      if (leaderInPreviousSession) {
-        leader = leaderInPreviousSession; // El analista estuvo con este líder
-      }
-    }
-  }
-  
-  // Si hay un líder con el que estuvo, verificar en qué mesa está el líder en la nueva sesión
-  if (leader) {
-    // Buscar si el líder está en la misma mesa
-    const leaderReservations = Object.entries(reservations).filter(([chairId, reservation]) => reservation.name === leader);
-    
-    // Bloquear toda la mesa donde el líder está
-    for (let [chairId, reservation] of leaderReservations) {
-      if (reservation.table === selectedChairId.split('-')[0]) {  // Si la mesa coincide
-        return true; // Impedir que se reserve en la mesa
-      }
+      // Verificar quién es el líder (puede ser Laura, Alan o Jose)
+      leader = leaders.find(leaderName => reservation.name === leaderName);
+      if (leader) break; // Si ya encontramos el líder, salimos del ciclo
     }
   }
 
-  return false;  // Si no hay líder o no está en la misma mesa, se puede reservar
+  if (!leader) return false;  // Si no se encontró un líder con el que estuvo el analista, dejamos continuar.
+
+  // Si encontramos un líder, ahora verificamos en qué mesa está en la sesión actual
+  for (let chairId in reservations) {
+    const reservation = reservations[chairId];
+    // Si el líder está en la misma mesa que el analista quiere reservar
+    if (reservation.name === leader && reservation.table === selectedChairId.split('-')[0]) {
+      return true; // Bloquear la mesa completa para que no se pueda sentar ahí
+    }
+  }
+  
+  return false;  // Si no se encontró una coincidencia, permitir la reserva
 }
 
 // Click en sillas
@@ -833,6 +829,7 @@ chairs.forEach(chair => {
   </script>
 </body>
 </html>
+
 
 
 
