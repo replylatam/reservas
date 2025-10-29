@@ -393,8 +393,11 @@ loginForm.addEventListener('submit', (e) => {
   
   if (okAcco) return setSession('acco');
   if (okCons) return setSession('consultoria');
-  if (okAdmin) return setSession('admin');  // Permitir login de admin directamente
-
+  if (okAdmin) {
+  setSession('admin');
+  closeLoginModal(); // Asegúrate de que esto se ejecute para el admin también
+  return;
+}
   loginError.classList.remove('hidden');
 });
 
@@ -881,6 +884,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
