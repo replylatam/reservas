@@ -236,6 +236,20 @@
   <script>
     let reservations = {};
     let prevReservations = {}; // última sesión (para “no repetir asiento”)
+    // Función para cargar las reservas anteriores (esto debe hacerse al cargar la página o al obtener las reservas desde Firebase)
+function loadPrevSessionReservations() {
+  const prevPath = `reservations/${SESSION.prevSessionDate}`;
+  
+  try {
+    const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
+    window.firebaseOnValue(prevRef, (snapshot) => {
+      const data = snapshot.val();
+      prevReservations = data ? data.data : {}; // Cargar reservas de la sesión anterior
+    });
+  } catch (e) {
+    console.error("Error al cargar las reservas previas:", e);
+  }
+}
 
     let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
     let selectedName = '';
@@ -606,8 +620,68 @@ function checkRotationForVIP(name, targetTable){
 
   return { allowed: ok, expected };
 }
+// Nombres de los líderes y analistas
+const leaders = ['Laura', 'Alan', 'Jose'];
+const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'];
 
+// Función para comprobar si un analista se sentó con un líder en la sesión anterior
+function isSeatedWithLeader(analystName, selectedChairId) {
+  // Verificar si el analista estuvo sentado junto a algún líder en la sesión anterior
+  for (let chairId in prevReservations) {
+    const reservation = prevReservations[chairId];
+    
+    // Si el nombre de la reserva es el del analista y está sentado junto a un líder
+    if (reservation.name === analystName) {
+      const adjacentChairs = getAdjacentChairs(reservation.table, reservation.chair);
+      
+      // Comprobar si está sentado junto a algún líder
+      for (let adjacentChairId of adjacentChairs) {
+        const adjacentReservation = prevReservations[adjacentChairId];
+        if (adjacentReservation && leaders.includes(adjacentReservation.name)) {
+          return true; // Estaba sentado junto a un líder
+        }
+      }
+    }
+  }
+  return false; // No está sentado junto a un líder
+}
 
+// Función para obtener las sillas adyacentes (en base a la mesa y número de silla)
+function getAdjacentChairs(table, chairNum) {
+  const adjacentChairs = [];
+  const chairNumInt = parseInt(chairNum);
+
+  if (table === '1') {
+    if (chairNumInt >= 1 && chairNumInt <= 4) { 
+      if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+    else if (chairNumInt >= 5 && chairNumInt <= 8) { 
+      if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+  } else if (table === '2') {
+    if (chairNumInt >= 9 && chairNumInt <= 12) { 
+      if (chairNumInt > 9) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 12) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+    else if (chairNumInt >= 13 && chairNumInt <= 16) { 
+      if (chairNumInt > 13) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 16) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+  } else if (table === '3') {
+    if (chairNumInt >= 17 && chairNumInt <= 20) { 
+      if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+    else if (chairNumInt >= 21 && chairNumInt <= 24) { 
+      if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`);
+      if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`);
+    }
+  }
+
+  return adjacentChairs;
+}
     // Click en sillas
     chairs.forEach(chair => {
       chair.addEventListener('click', () => {
@@ -617,7 +691,14 @@ function checkRotationForVIP(name, targetTable){
         const table = chair.dataset.table;
         const chairNum = chair.dataset.chair;
         const chairId = `${table}-${chairNum}`;
-
+        // Validar si el miembro es un analista y si se está sentando con un líder
+if (analysts.includes(selectedName)) {
+  const wasSeatedWithLeader = isSeatedWithLeader(selectedName, chairId);
+  if (wasSeatedWithLeader) {
+    showNotification(`${selectedName} no puede sentarse con un líder (Laura, Alan o Jose) dos días consecutivos.`, 'error');
+    return;
+  }
+}
         // Ya reservada
         if (reservations[chairId]) {
           const r = reservations[chairId];
@@ -776,6 +857,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
