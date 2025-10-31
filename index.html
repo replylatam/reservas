@@ -236,7 +236,33 @@
           Cambios guardados exitosamente en la base de datos.
         </div>
       </div>
-
+      <!-- Panel de Control (SELECCIÓN DE EQUIPO Y NOMBRE) -->
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel de Reservas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="teamSelect" class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Equipo:</label>
+            <select id="teamSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="acco">Equipo ACCO</option>
+              <option value="consultoria">Equipo Consultoría</option>
+            </select>
+          </div>
+          <div>
+            <label for="nameSelect" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Reserva:</label>
+            <select id="nameSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Selecciona un nombre</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-4 flex gap-4">
+          <button id="clearAllBtn" class="hidden bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Limpiar Todas las Reservas
+          </button>
+          <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Compartir Link
+          </button>
+        </div>
+      </div>
       <!-- Instrucciones de Uso -->
       <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
         <h3 class="text-lg font-semibold text-green-800 mb-2">Sistema en Tiempo Real Activado:</h3>
@@ -766,6 +792,7 @@
   </script>
 </body>
 </html>
+
 
 
 
