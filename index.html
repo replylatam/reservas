@@ -53,6 +53,11 @@
     .divider { width: 2px; height: 200px; background: linear-gradient(to bottom, #e5e7eb, #9ca3af, #e5e7eb); margin: 0 2rem; border-radius: 1px; }
     .chair.blocked { background-color: #1f2937; border-color: #111827; color: #fff; cursor: not-allowed; }
     .chair.blocked:hover { transform: none; }
+    .notification-toast {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+}
   </style>
 </head>
 <body class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
@@ -927,13 +932,42 @@ if (!rot.allowed) {
       reservationSummary.innerHTML = html;
     }
 
-    function showNotification(message, type='success'){
-      const n = document.createElement('div');
-      n.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${type==='success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-      n.textContent = message;
-      document.body.appendChild(n);
-      setTimeout(()=>{ n.style.opacity='0'; setTimeout(()=>document.body.removeChild(n), 300); }, 2500);
-    }
+    function showNotification(message, type = 'success') {
+  const n = document.createElement('div');
+  n.className = `fixed right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 text-white font-medium text-sm max-w-xs break-words
+                 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+
+  // Contenido
+  n.innerHTML = `
+    <div class="flex items-center gap-2">
+      ${type === 'success' ? '✅' : '⚠️'} 
+      <span>${message}</span>
+    </div>
+  `;
+
+  // Posicionar dinámicamente según notificaciones existentes
+  const existing = document.querySelectorAll('.notification-toast');
+  const topOffset = 16 + (existing.length * 70); // 16px margen superior + 70px por notificación
+  n.style.top = `${topOffset}px`;
+  n.classList.add('notification-toast'); // para contarlas
+
+  document.body.appendChild(n);
+
+  // Animación de entrada
+  requestAnimationFrame(() => {
+    n.style.opacity = '1';
+    n.style.transform = 'translateX(0)';
+  });
+
+  // Auto-eliminar después de 3 segundos
+  setTimeout(() => {
+    n.style.opacity = '0';
+    n.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (n.parentNode) document.body.removeChild(n);
+    }, 300);
+  }, 3000);
+}
 
     // Puente: se llama cuando el SDK modular avisa que está listo
     window.initFirebaseBridge = function(){
@@ -952,6 +986,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
