@@ -237,6 +237,32 @@
         <div id="pendingPeople" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
       </div>
 
+      <!-- Panel de Administración de Equipos (solo admin) -->
+<div id="adminTeamsPanel" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Administrar Equipos (Solo Admin)</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Equipo ACCO -->
+    <div>
+      <h4 class="font-medium text-blue-700 mb-2">Equipo ACCO</h4>
+      <ul id="accoMembersList" class="space-y-1 mb-3"></ul>
+      <div class="flex gap-2">
+        <input type="text" id="newAccoMember" placeholder="Nuevo nombre" class="flex-1 p-2 border border-gray-300 rounded text-sm">
+        <button id="addAccoMember" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium">Agregar</button>
+      </div>
+    </div>
+
+    <!-- Equipo Consultoría -->
+    <div>
+      <h4 class="font-medium text-green-700 mb-2">Equipo Consultoría</h4>
+      <ul id="consultoriaMembersList" class="space-y-1 mb-3"></ul>
+      <div class="flex gap-2">
+        <input type="text" id="newConsultoriaMember" placeholder="Nuevo nombre" class="flex-1 p-2 border border-gray-300 rounded text-sm">
+        <button id="addConsultoriaMember" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-medium">Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
       <!-- Resumen de Reservas -->
       <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
@@ -268,11 +294,17 @@ function loadPrevSessionReservations() {
     let selectedName = '';
     let currentUser = null; // 'acco' | 'consultoria'
 
-    // Nombres por equipo
-    const teamMembers = {
-      acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
-      consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
-    };
+// Equipos dinámicos (se cargarán desde Firebase)
+let teamMembers = {
+  acco: [],
+  consultoria: []
+};
+
+// Valores por defecto (solo si no hay datos en Firebase)
+const defaultTeamMembers = {
+  acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
+  consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
+};
 
     // Refs DOM
     const teamSelect = document.getElementById('teamSelect');
@@ -359,7 +391,6 @@ function updatePermissionsUI() {
     clearAllBtn.disabled = true;
   }
 }
-
 function setSession(user) {
   currentUser = user;
   localStorage.setItem('loggedUser', user);
@@ -395,6 +426,15 @@ function setSession(user) {
 
   updateNameOptions(); // ← ahora no falla
   updatePermissionsUI();
+  
+  // Mostrar/ocultar panel de administración de equipos
+  const adminTeamsPanel = document.getElementById('adminTeamsPanel');
+  if (currentUser === 'admin') {
+    adminTeamsPanel.classList.remove('hidden');
+  } else {
+    adminTeamsPanel.classList.add('hidden');
+  }
+
   closeLoginModal();
   showNotification('Sesión iniciada', 'success');
 }
@@ -442,6 +482,51 @@ loginForm.addEventListener('submit', (e) => {
       });
       selectedName = '';
     }
+
+    function updateTeamMemberLists() {
+  const accoList = document.getElementById('accoMembersList');
+  const consultoriaList = document.getElementById('consultoriaMembersList');
+
+  // ACCO
+  accoList.innerHTML = '';
+  teamMembers.acco.forEach(name => {
+    const li = document.createElement('li');
+    li.className = 'flex justify-between items-center bg-blue-50 px-2 py-1 rounded text-sm';
+    li.innerHTML = `
+      <span>${name}</span>
+      <button data-team="acco" data-name="${name}" class="removeMember text-red-600 hover:text-red-800 text-xs">✕</button>
+    `;
+    accoList.appendChild(li);
+  });
+
+  // Consultoría
+  consultoriaList.innerHTML = '';
+  teamMembers.consultoria.forEach(name => {
+    const li = document.createElement('li');
+    li.className = 'flex justify-between items-center bg-green-50 px-2 py-1 rounded text-sm';
+    li.innerHTML = `
+      <span>${name}</span>
+      <button data-team="consultoria" data-name="${name}" class="removeMember text-red-600 hover:text-red-800 text-xs">✕</button>
+    `;
+    consultoriaList.appendChild(li);
+  });
+
+  // Re-asignar eventos de eliminación
+  document.querySelectorAll('.removeMember').forEach(btn => {
+    btn.onclick = function() {
+      if (currentUser !== 'admin') {
+        showNotification('Solo admin puede eliminar', 'error');
+        return;
+      }
+      const team = this.dataset.team;
+      const name = this.dataset.name;
+      if (confirm(`¿Eliminar a "${name}" del equipo ${team.toUpperCase()}?`)) {
+        teamMembers[team] = teamMembers[team].filter(n => n !== name);
+        saveTeamMembers();
+      }
+    };
+  });
+}
 
     teamSelect.addEventListener('change',(e)=>{
       selectedTeam = e.target.value;
@@ -968,24 +1053,89 @@ if (!rot.allowed) {
     }, 300);
   }, 3000);
 }
+// Cargar equipos desde Firebase
+function loadTeamMembers() {
+  const teamsRef = window.firebaseRef(window.firebaseDB, 'teams');
+  window.firebaseOnValue(teamsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      teamMembers = data;
+    } else {
+      // Si no existe, usar valores por defecto y guardarlos
+      teamMembers = { ...defaultTeamMembers };
+      saveTeamMembers();
+    }
+    updateTeamMemberLists();
+    updateNameOptions();
+    showNotification('Equipos cargados', 'success');
+  });
+}
 
+// Guardar equipos en Firebase
+function saveTeamMembers() {
+  const teamsRef = window.firebaseRef(window.firebaseDB, 'teams');
+  window.firebaseSet(teamsRef, teamMembers).then(() => {
+    updateTeamMemberLists();
+    updateNameOptions();
+    showNotification('Equipos actualizados', 'success');
+  }).catch(() => {
+    showNotification('Error al guardar equipos', 'error');
+  });
+}
     // Puente: se llama cuando el SDK modular avisa que está listo
     window.initFirebaseBridge = function(){
       isFirebaseReady = true;
       loadReservations();
+      loadTeamMembers();
       updateNameOptions();
       showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
     };
 
-    // Boot local inmediato, por si Firebase tarda
-    renderSessionBanner();
-    loadReservations(); updateNameOptions(); updateChairDisplay(); updateReservationSummary(); updatePendingPeople();
+// Eventos para agregar miembros
+document.getElementById('addAccoMember').addEventListener('click', () => {
+  if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
+  const input = document.getElementById('newAccoMember');
+  const name = input.value.trim();
+  if (!name) return showNotification('Escribe un nombre', 'error');
+  if (teamMembers.acco.includes(name)) return showNotification('Ya existe en ACCO', 'error');
+  if (teamMembers.consultoria.includes(name)) return showNotification('Ya existe en Consultoría', 'error');
 
-    // Forzar login al cargar (o autologin)
-    if (!tryAutoLogin()) { openLoginModal(); }
+  teamMembers.acco.push(name);
+  input.value = '';
+  saveTeamMembers();
+});
+
+document.getElementById('addConsultoriaMember').addEventListener('click', () => {
+  if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
+  const input = document.getElementById('newConsultoriaMember');
+  const name = input.value.trim();
+  if (!name) return showNotification('Escribe un nombre', 'error');
+  if (teamMembers.consultoria.includes(name)) return showNotification('Ya existe en Consultoría', 'error');
+  if (teamMembers.acco.includes(name)) return showNotification('Ya existe en ACCO', 'error');
+
+  teamMembers.consultoria.push(name);
+  input.value = '';
+  saveTeamMembers();
+});
+    
+// === INICIO: Solo Firebase, sin datos locales ===
+renderSessionBanner();
+
+// Mostrar estado de conexión
+updateConnectionStatus(false);
+
+// Mostrar mensaje de carga
+showNotification('Conectando a la base de datos...', 'success');
+
+// Forzar login (incluso si hay autologin, para asegurar que se cargue todo)
+if (!tryAutoLogin()) {
+  openLoginModal();
+}
+// === FIN ===
   </script>
 </body>
 </html>
+
 
 
 
