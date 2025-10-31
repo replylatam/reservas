@@ -380,11 +380,8 @@ function closeLoginModal() {
   document.body.style.overflow = '';
 }
 function updatePermissionsUI() {
-  if (currentUser === 'acco') {
+  if (currentUser === 'admin') {
     clearAllBtn.classList.remove('hidden');
-    clearAllBtn.disabled = false;
-  } else if (currentUser === 'admin') {
-    clearAllBtn.classList.remove('hidden');  // Muestra el botón solo para el admin
     clearAllBtn.disabled = false;
   } else {
     clearAllBtn.classList.add('hidden');
@@ -1135,6 +1132,7 @@ if (!tryAutoLogin()) {
   </script>
 </body>
 </html>
+
 
 
 
