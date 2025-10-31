@@ -210,13 +210,16 @@
           </div>
         </div>
         <div class="mt-4 flex gap-4">
-          <button id="clearAllBtn" class="hidden bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Limpiar Todas las Reservas
-          </button>
-          <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            📱 Compartir Link
-          </button>
-        </div>
+  <button id="clearAllBtn" class="hidden bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+    Limpiar Todas las Reservas
+  </button>
+  <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+    Compartir Link
+  </button>
+  <button id="historyBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+    Histórico (3 días)
+  </button>
+</div>
       </div>
 
       <!-- Instrucciones de Uso -->
@@ -288,8 +291,94 @@
       </div>
     </main>
   </div>
+  <!-- MODAL HISTÓRICO -->
+<div id="historyModal" class="fixed inset-0 hidden items-center justify-center z-50">
+  <div class="absolute inset-0 bg-black/50" id="historyModalBg"></div>
+  <div class="relative bg-white w-full max-w-4xl mx-4 rounded-2xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">Histórico de Reservas</h2>
+      <button id="closeHistoryModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+    </div>
+    <div id="historyContent" class="space-y-6"></div>
+  </div>
+</div>
 
   <script>
+
+    // === HISTÓRICO DE ÚLTIMOS 3 DÍAS DE OFICINA ===
+async function loadHistory() {
+  const historyContent = document.getElementById('historyContent');
+  historyContent.innerHTML = '<p class="text-center text-gray-500">Cargando histórico...</p>';
+
+  const dates = [];
+  let current = new Date();
+  let found = 0;
+
+  // Retroceder hasta encontrar 3 días de oficina (Martes o Jueves)
+  while (found < 3) {
+    current.setDate(current.getDate() - 1);
+    const dow = current.getDay();
+    if (dow === 2 || dow === 4) { // Martes o Jueves
+      dates.push(formatYMD(current));
+      found++;
+    }
+  }
+
+  const history = {};
+
+  // Cargar reservas de cada fecha
+  for (let date of dates) {
+    const path = `reservations/${date}`;
+    try {
+      const snap = await window.firebaseRef(window.firebaseDB, path).once('value');
+      const data = snap.val();
+      history[date] = data ? data.data : {};
+    } catch (e) {
+      history[date] = {};
+    }
+  }
+
+  // Renderizar
+  let html = '';
+  for (let i = 0; i < dates.length; i++) {
+    const date = dates[i];
+    const data = history[date];
+    const niceDate = new Date(date).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    html += `
+      <div class="bg-gray-50 p-4 rounded-lg border">
+        <h3 class="font-bold text-lg text-gray-800 mb-3">${niceDate}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">`;
+
+    for (let table = 1; table <= 3; table++) {
+      const tableName = table === 1 ? 'Mesa 1 (Chica)' : `Mesa ${table} (Grande)`;
+      const seats = Object.entries(data)
+        .filter(([id, r]) => r.table == table)
+        .sort((a, b) => a[1].chair - b[1].chair);
+
+      html += `
+        <div>
+          <div class="font-medium text-gray-700 mb-1">${tableName}</div>
+          <div class="space-y-1">`;
+      
+      if (seats.length === 0) {
+        html += `<p class="text-gray-400 italic">Sin reservas</p>`;
+      } else {
+        seats.forEach(([id, r]) => {
+          const isLeader = ['Laura', 'Alan', 'Jose'].includes(r.name);
+          html += `<div class="${isLeader ? 'font-bold text-red-600' : r.team === 'acco' ? 'text-blue-600' : 'text-green-600'}">
+            ${r.name} (Silla ${r.chair})
+          </div>`;
+        });
+      }
+      html += `</div></div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  historyContent.innerHTML = html || '<p class="text-center text-gray-500">No hay datos históricos.</p>';
+}
     let reservations = {};
     let prevReservations = {}; // última sesión (para “no repetir asiento”)
     let blocked = {};
@@ -583,6 +672,23 @@ clearAllBtn.addEventListener('click', () => {
       if(navigator.share){ navigator.share({title:'Sistema de Reservas de Mesas', text:'Entra para hacer tu reserva de mesa', url}); }
       else { navigator.clipboard.writeText(url).then(()=>showNotification('Link copiado 📋','success')); }
     });
+
+    // === EVENTOS HISTÓRICO ===
+document.getElementById('historyBtn').addEventListener('click', () => {
+  document.getElementById('historyModal').classList.remove('hidden');
+  document.getElementById('historyModal').classList.add('flex');
+  loadHistory();
+});
+
+document.getElementById('closeHistoryModal').addEventListener('click', () => {
+  document.getElementById('historyModal').classList.add('hidden');
+  document.getElementById('historyModal').classList.remove('flex');
+});
+
+document.getElementById('historyModalBg').addEventListener('click', () => {
+  document.getElementById('historyModal').classList.add('hidden');
+  document.getElementById('historyModal').classList.remove('flex');
+});
 
     // ===== Firebase (por sesión) =====
     let isFirebaseReady = false;
@@ -1193,8 +1299,10 @@ if (!tryAutoLogin()) {
 }
 // === FIN ===
   </script>
+  
 </body>
 </html>
+
 
 
 
