@@ -231,12 +231,30 @@
         </div>
       </div>
 
+      <!-- Personas de Vacaciones (Visible para todos) -->
+<div id="vacationsBanner" class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg hidden">
+  <h3 class="text-lg font-semibold text-yellow-800 mb-2">Personas de Vacaciones</h3>
+  <div id="vacationsList" class="flex flex-wrap gap-2"></div>
+</div>
       <!-- Personas Pendientes -->
       <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Personas Pendientes de Reservar</h3>
         <div id="pendingPeople" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
       </div>
-
+<!-- Control de Vacaciones (Solo Admin) -->
+<div class="mt-6 pt-6 border-t border-gray-200">
+  <h4 class="font-medium text-yellow-700 mb-3">Marcar Vacaciones</h4>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+    <div>
+      <p class="font-medium text-blue-700 mb-2">Equipo ACCO</p>
+      <div id="vacationAccoControls" class="space-y-1"></div>
+    </div>
+    <div>
+      <p class="font-medium text-green-700 mb-2">Equipo Consultoría</p>
+      <div id="vacationConsultoriaControls" class="space-y-1"></div>
+    </div>
+  </div>
+</div>
       <!-- Panel de Administración de Equipos (solo admin) -->
 <div id="adminTeamsPanel" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
   <h3 class="text-xl font-semibold text-gray-800 mb-4">Administrar Equipos (Solo Admin)</h3>
@@ -299,6 +317,8 @@ let teamMembers = {
   acco: [],
   consultoria: []
 };
+
+let vacations = {}; // { "Laura": true, "Jose": true }
 
 // Valores por defecto (solo si no hay datos en Firebase)
 const defaultTeamMembers = {
@@ -431,6 +451,9 @@ function setSession(user) {
   } else {
     adminTeamsPanel.classList.add('hidden');
   }
+  if (currentUser === 'admin') {
+    updateVacationsUI();
+  }
 
   closeLoginModal();
   showNotification('Sesión iniciada', 'success');
@@ -469,16 +492,18 @@ loginForm.addEventListener('submit', (e) => {
     function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
 
     function updateNameOptions(){
-      const members = teamMembers[selectedTeam] || []; // ← AÑADE || []
-      nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
-      members.forEach(member=>{
-        const option = document.createElement('option');
-        option.value = member;
-        option.textContent = hasExistingReservation(member) ? `${member} (Tiene reserva - clic para cancelar)` : member;
-        nameSelect.appendChild(option);
-      });
-      selectedName = '';
-    }
+  const members = (teamMembers[selectedTeam] || []).filter(m => !vacations[m]);
+  nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
+  members.forEach(member => {
+    const hasRes = hasExistingReservation(member);
+    const opt = document.createElement('option');
+    opt.value = member;
+    opt.textContent = hasRes ? `${member} (Tiene reserva)` : member;
+    if (hasRes) opt.classList.add('text-orange-600');
+    nameSelect.appendChild(opt);
+  });
+  selectedName = '';
+}
 
     function updateTeamMemberLists() {
   const accoList = document.getElementById('accoMembersList');
@@ -1079,11 +1104,87 @@ function saveTeamMembers() {
     showNotification('Error al guardar equipos', 'error');
   });
 }
+
+    // Cargar vacaciones
+function loadVacations() {
+  const vacRef = window.firebaseRef(window.firebaseDB, 'vacations');
+  window.firebaseOnValue(vacRef, (snapshot) => {
+    vacations = snapshot.val() || {};
+    updateVacationsUI();
+    updateNameOptions();
+  });
+}
+
+// Guardar vacaciones
+function saveVacations() {
+  const vacRef = window.firebaseRef(window.firebaseDB, 'vacations');
+  window.firebaseSet(vacRef, vacations);
+}
+
+// Mostrar banner + controles admin
+function updateVacationsUI() {
+  const banner = document.getElementById('vacationsBanner');
+  const list = document.getElementById('vacationsList');
+  const accoCtrl = document.getElementById('vacationAccoControls');
+  const consCtrl = document.getElementById('vacationConsultoriaControls');
+
+  list.innerHTML = '';
+  accoCtrl.innerHTML = '';
+  consCtrl.innerHTML = '';
+
+  let hasAny = false;
+
+  ['acco', 'consultoria'].forEach(team => {
+    (teamMembers[team] || []).forEach(name => {
+      const checked = !!vacations[name];
+      if (checked) {
+        hasAny = true;
+        list.innerHTML += `<span class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">${name} <span class="text-lg">Palmera</span></span>`;
+      }
+
+      if (currentUser === 'admin') {
+        const ctrl = team === 'acco' ? accoCtrl : consCtrl;
+        ctrl.innerHTML += `
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="vac_${team}_${name}" ${checked?'checked':''} class="rounded text-yellow-600">
+            <label for="vac_${team}_${name}" class="cursor-pointer">${name}</label>
+          </div>`;
+      }
+    });
+  });
+
+  // Eventos de checkbox
+  document.querySelectorAll('#vacationAccoControls input, #vacationConsultoriaControls input').forEach(cb => {
+    cb.onchange = () => {
+      const id = cb.id;
+      const name = id.split('_').slice(2).join('_');
+      if (cb.checked) {
+        vacations[name] = true;
+        // Cancelar reserva si existe
+        for (let chair in reservations) {
+          if (reservations[chair].name === name) delete reservations[chair];
+        }
+      } else {
+        delete vacations[name];
+      }
+      saveReservations();
+      saveVacations();
+      updateChairDisplay();
+      updateReservationSummary();
+      updatePendingPeople();
+      updateNameOptions();
+      updateVacationsUI();
+    };
+  });
+
+  banner.classList.toggle('hidden', !hasAny);
+}
     // Puente: se llama cuando el SDK modular avisa que está listo
     window.initFirebaseBridge = function(){
       isFirebaseReady = true;
       loadReservations();
       loadTeamMembers();
+      loadVacations();
       updateNameOptions();
       showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
     };
@@ -1132,6 +1233,8 @@ if (!tryAutoLogin()) {
   </script>
 </body>
 </html>
+
+
 
 
 
