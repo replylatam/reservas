@@ -18,7 +18,7 @@
   <!-- Firebase SDK (MÓDULO) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+    import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
@@ -40,6 +40,7 @@
     window.firebaseSet = set;
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
+    window.firebaseGet = get;
 
     // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
@@ -306,6 +307,7 @@
   <script>
 
     // === HISTÓRICO DE ÚLTIMOS 3 DÍAS DE OFICINA ===
+// === HISTÓRICO DE ÚLTIMOS 3 DÍAS DE OFICINA (CORREGIDO) ===
 async function loadHistory() {
   const historyContent = document.getElementById('historyContent');
   historyContent.innerHTML = '<p class="text-center text-gray-500">Cargando histórico...</p>';
@@ -315,10 +317,10 @@ async function loadHistory() {
   let found = 0;
 
   // Retroceder hasta encontrar 3 días de oficina (Martes o Jueves)
-  while (found < 3) {
+  while (found < 3 && current > new Date('2020-01-01')) {
     current.setDate(current.getDate() - 1);
     const dow = current.getDay();
-    if (dow === 2 || dow === 4) { // Martes o Jueves
+    if (dow === 2 || dow === 4) { // Martes=2, Jueves=4
       dates.push(formatYMD(current));
       found++;
     }
@@ -326,14 +328,16 @@ async function loadHistory() {
 
   const history = {};
 
-  // Cargar reservas de cada fecha
+  // Cargar reservas de cada fecha usando get()
   for (let date of dates) {
     const path = `reservations/${date}`;
     try {
-      const snap = await window.firebaseRef(window.firebaseDB, path).once('value');
-      const data = snap.val();
+      const reservationsRef = window.firebaseRef(window.firebaseDB, path);
+      const snapshot = await window.firebaseGet(reservationsRef); // ← AQUÍ ESTÁ EL FIX
+      const data = snapshot.val();
       history[date] = data ? data.data : {};
     } catch (e) {
+      console.error(`Error cargando ${date}:`, e);
       history[date] = {};
     }
   }
@@ -343,7 +347,9 @@ async function loadHistory() {
   for (let i = 0; i < dates.length; i++) {
     const date = dates[i];
     const data = history[date];
-    const niceDate = new Date(date).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const niceDate = new Date(date).toLocaleDateString('es-AR', { 
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    });
 
     html += `
       <div class="bg-gray-50 p-4 rounded-lg border">
@@ -353,7 +359,7 @@ async function loadHistory() {
     for (let table = 1; table <= 3; table++) {
       const tableName = table === 1 ? 'Mesa 1 (Chica)' : `Mesa ${table} (Grande)`;
       const seats = Object.entries(data)
-        .filter(([id, r]) => r.table == table)
+        .filter(([id, r]) => r && r.table == table)
         .sort((a, b) => a[1].chair - b[1].chair);
 
       html += `
@@ -366,7 +372,8 @@ async function loadHistory() {
       } else {
         seats.forEach(([id, r]) => {
           const isLeader = ['Laura', 'Alan', 'Jose'].includes(r.name);
-          html += `<div class="${isLeader ? 'font-bold text-red-600' : r.team === 'acco' ? 'text-blue-600' : 'text-green-600'}">
+          const teamColor = r.team === 'acco' ? 'text-blue-600' : 'text-green-600';
+          html += `<div class="${isLeader ? 'font-bold text-red-600' : teamColor}">
             ${r.name} (Silla ${r.chair})
           </div>`;
         });
@@ -377,7 +384,7 @@ async function loadHistory() {
     html += `</div></div>`;
   }
 
-  historyContent.innerHTML = html || '<p class="text-center text-gray-500">No hay datos históricos.</p>';
+  historyContent.innerHTML = html || '<p class="text-center text-gray-500">No hay datos históricos disponibles.</p>';
 }
     let reservations = {};
     let prevReservations = {}; // última sesión (para “no repetir asiento”)
@@ -1302,6 +1309,7 @@ if (!tryAutoLogin()) {
   
 </body>
 </html>
+
 
 
 
