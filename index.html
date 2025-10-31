@@ -246,7 +246,7 @@
         <div id="pendingPeople" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
       </div>
 <!-- Control de Vacaciones (Solo Admin) -->
-<div class="mt-6 pt-6 border-t border-gray-200">
+<div id="vacationsAdminPanel" class="mt-6 pt-6 border-t border-gray-200 hidden">
   <h4 class="font-medium text-yellow-700 mb-3">Marcar Vacaciones</h4>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
     <div>
@@ -1202,6 +1202,14 @@ function updateVacationsUI() {
   const list = document.getElementById('vacationsList');
   const accoCtrl = document.getElementById('vacationAccoControls');
   const consCtrl = document.getElementById('vacationConsultoriaControls');
+  const adminPanel = document.getElementById('vacationsAdminPanel');
+
+  // Mostrar panel solo si es admin
+  if (currentUser === 'admin') {
+    adminPanel.classList.remove('hidden');
+  } else {
+    adminPanel.classList.add('hidden');
+  }
 
   list.innerHTML = '';
   accoCtrl.innerHTML = '';
@@ -1309,6 +1317,7 @@ if (!tryAutoLogin()) {
   
 </body>
 </html>
+
 
 
 
