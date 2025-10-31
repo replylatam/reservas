@@ -191,33 +191,51 @@
         </div>
       </div>
 
-      <!-- Panel de Control -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel de Reservas</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label for="teamSelect" class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Equipo:</label>
-            <select id="teamSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="acco">Equipo ACCO</option>
-              <option value="consultoria">Equipo Consultoría</option>
-            </select>
-          </div>
-          <div>
-            <label for="nameSelect" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Reserva:</label>
-            <select id="nameSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Selecciona un nombre</option>
-            </select>
-          </div>
+      <!-- Panel de Administración (solo para Admin) -->
+<div id="adminPanel" class="mt-6 bg-white rounded-lg shadow-lg p-6 hidden">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+    <span class="mr-2">🔧</span> Panel de Administración - Gestión de Equipos
+  </h3>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Gestión Equipo ACCO -->
+    <div class="border-r border-gray-200 pr-6">
+      <h4 class="text-lg font-semibold text-blue-600 mb-4">Equipo ACCO</h4>
+      <div class="space-y-3">
+        <div class="flex gap-2 items-center">
+          <input id="accoNewMember" type="text" class="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nuevo miembro ACCO" />
+          <button id="addAccoBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium">Agregar</button>
         </div>
-        <div class="mt-4 flex gap-4">
-          <button id="clearAllBtn" class="hidden bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Limpiar Todas las Reservas
-          </button>
-          <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            📱 Compartir Link
-          </button>
+        <div id="accoMembersList" class="space-y-2 max-h-40 overflow-y-auto">
+          <!-- Los miembros se cargarán aquí dinámicamente -->
         </div>
       </div>
+    </div>
+
+    <!-- Gestión Equipo Consultoría -->
+    <div class="pl-6">
+      <h4 class="text-lg font-semibold text-green-600 mb-4">Equipo Consultoría</h4>
+      <div class="space-y-3">
+        <div class="flex gap-2 items-center">
+          <input id="consultoriaNewMember" type="text" class="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Nuevo miembro Consultoría" />
+          <button id="addConsultoriaBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium">Agregar</button>
+        </div>
+        <div id="consultoriaMembersList" class="space-y-2 max-h-40 overflow-y-auto">
+          <!-- Los miembros se cargarán aquí dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 flex gap-3">
+    <button id="saveTeamsBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-medium">💾 Guardar Cambios</button>
+    <button id="resetTeamsBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium">↻ Resetear</button>
+  </div>
+
+  <div id="adminMessage" class="mt-3 text-sm text-gray-500 hidden">
+    Cambios guardados exitosamente en la base de datos.
+  </div>
+</div>
 
       <!-- Instrucciones de Uso -->
       <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
@@ -297,6 +315,24 @@ function loadPrevSessionReservations() {
     const connectionStatus = document.getElementById('connectionStatus');
     const sessionBanner = document.getElementById('sessionBanner');
 
+    // Refs DOM para Admin Panel
+const adminPanel = document.getElementById('adminPanel');
+const accoNewMember = document.getElementById('accoNewMember');
+const consultoriaNewMember = document.getElementById('consultoriaNewMember');
+const addAccoBtn = document.getElementById('addAccoBtn');
+const addConsultoriaBtn = document.getElementById('addConsultoriaBtn');
+const accoMembersList = document.getElementById('accoMembersList');
+const consultoriaMembersList = document.getElementById('consultoriaMembersList');
+const saveTeamsBtn = document.getElementById('saveTeamsBtn');
+const resetTeamsBtn = document.getElementById('resetTeamsBtn');
+const adminMessage = document.getElementById('adminMessage');
+
+// Variables para los equipos (se cargarán desde Firebase/localStorage)
+let currentTeamMembers = {
+  acco: [...teamMembers.acco], // Copia del original
+  consultoria: [...teamMembers.consultoria]
+};
+
     // Mostrar URL actual
     currentUrl.textContent = window.location.href;
 
@@ -351,12 +387,212 @@ function updatePermissionsUI() {
   if (currentUser === 'acco') {
     clearAllBtn.classList.remove('hidden');
     clearAllBtn.disabled = false;
+    adminPanel.classList.add('hidden'); // Ocultar panel admin
+  } else if (currentUser === 'consultoria') {
+    clearAllBtn.classList.add('hidden');
+    clearAllBtn.disabled = true;
+    adminPanel.classList.add('hidden'); // Ocultar panel admin
   } else if (currentUser === 'admin') {
-    clearAllBtn.classList.remove('hidden');  // Muestra el botón solo para el admin
+    clearAllBtn.classList.remove('hidden');
     clearAllBtn.disabled = false;
+    adminPanel.classList.remove('hidden'); // Mostrar panel admin
+    loadTeamMembers(); // Cargar miembros al mostrar el panel
   } else {
     clearAllBtn.classList.add('hidden');
     clearAllBtn.disabled = true;
+    adminPanel.classList.add('hidden');
+  }
+}
+
+    // Event listeners para Admin Panel
+if (addAccoBtn) {
+  addAccoBtn.addEventListener('click', () => {
+    const name = accoNewMember.value;
+    if (addMember('acco', name)) {
+      accoNewMember.value = '';
+    }
+  });
+}
+
+if (addConsultoriaBtn) {
+  addConsultoriaBtn.addEventListener('click', () => {
+    const name = consultoriaNewMember.value;
+    if (addMember('consultoria', name)) {
+      consultoriaNewMember.value = '';
+    }
+  });
+}
+
+if (saveTeamsBtn) {
+  saveTeamsBtn.addEventListener('click', saveTeamMembers);
+}
+
+if (resetTeamsBtn) {
+  resetTeamsBtn.addEventListener('click', resetTeamMembers);
+}
+
+// Permitir agregar con Enter
+if (accoNewMember) {
+  accoNewMember.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addAccoBtn.click();
+  });
+}
+
+if (consultoriaNewMember) {
+  consultoriaNewMember.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addConsultoriaBtn.click();
+  });
+}
+
+// ===== GESTIÓN DE EQUIPOS (ADMIN) =====
+
+// Cargar miembros desde Firebase/localStorage
+function loadTeamMembers() {
+  if (!isFirebaseReady) {
+    // Cargar desde localStorage
+    const saved = localStorage.getItem('teamMembers');
+    if (saved) {
+      currentTeamMembers = JSON.parse(saved);
+    }
+  } else {
+    // Cargar desde Firebase
+    try {
+      const teamRef = window.firebaseRef(window.firebaseDB, 'teamMembers');
+      window.firebaseOnValue(teamRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          currentTeamMembers = {
+            acco: data.acco || teamMembers.acco,
+            consultoria: data.consultoria || teamMembers.consultoria
+          };
+          localStorage.setItem('teamMembers', JSON.stringify(currentTeamMembers));
+        }
+        renderTeamMembers();
+        updateNameOptions(); // Actualizar select de nombres
+      });
+      return;
+    } catch (e) {
+      console.error('Error cargando equipos desde Firebase:', e);
+    }
+  }
+  
+  // Si no hay Firebase, usar localStorage o defaults
+  const saved = localStorage.getItem('teamMembers');
+  if (saved) {
+    currentTeamMembers = JSON.parse(saved);
+  }
+  renderTeamMembers();
+  updateNameOptions();
+}
+
+// Renderizar lista de miembros
+function renderTeamMembers() {
+  // ACCO
+  accoMembersList.innerHTML = currentTeamMembers.acco.map((member, index) => `
+    <div class="flex items-center justify-between p-2 bg-gray-50 rounded border">
+      <span class="text-sm text-gray-700">${member}</span>
+      <button class="remove-member text-red-500 hover:text-red-700 text-xs font-medium" data-team="acco" data-index="${index}">Eliminar</button>
+    </div>
+  `).join('');
+
+  // Consultoría
+  consultoriaMembersList.innerHTML = currentTeamMembers.consultoria.map((member, index) => `
+    <div class="flex items-center justify-between p-2 bg-gray-50 rounded border">
+      <span class="text-sm text-gray-700">${member}</span>
+      <button class="remove-member text-red-500 hover:text-red-700 text-xs font-medium" data-team="consultoria" data-index="${index}">Eliminar</button>
+    </div>
+  `).join('');
+
+  // Agregar event listeners a los botones de eliminar
+  document.querySelectorAll('.remove-member').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const team = e.target.dataset.team;
+      const index = parseInt(e.target.dataset.index);
+      removeMember(team, index);
+    });
+  });
+}
+
+// Agregar nuevo miembro
+function addMember(team, name) {
+  if (!name || name.trim() === '') {
+    showNotification('El nombre no puede estar vacío', 'error');
+    return false;
+  }
+  
+  const trimmedName = name.trim();
+  if (currentTeamMembers[team].includes(trimmedName)) {
+    showNotification('Este miembro ya existe en el equipo', 'error');
+    return false;
+  }
+
+  currentTeamMembers[team].push(trimmedName);
+  renderTeamMembers();
+  updateNameOptions();
+  showNotification(`Miembro "${trimmedName}" agregado al equipo ${team}`, 'success');
+  return true;
+}
+
+// Eliminar miembro
+function removeMember(team, index) {
+  const memberName = currentTeamMembers[team][index];
+  
+  // Verificar si el miembro tiene reservas activas
+  const hasReservations = Object.values(reservations).some(r => r.name === memberName);
+  if (hasReservations) {
+    showNotification(`No se puede eliminar a ${memberName} - tiene reservas activas`, 'error');
+    return;
+  }
+
+  if (confirm(`¿Estás seguro de que querés eliminar a ${memberName} del equipo ${team}?`)) {
+    currentTeamMembers[team].splice(index, 1);
+    renderTeamMembers();
+    updateNameOptions();
+    showNotification(`Miembro "${memberName}" eliminado del equipo ${team}`, 'success');
+  }
+}
+
+// Guardar equipos en Firebase/localStorage
+function saveTeamMembers() {
+  if (!isFirebaseReady) {
+    // Guardar en localStorage
+    localStorage.setItem('teamMembers', JSON.stringify(currentTeamMembers));
+    showNotification('Equipos guardados localmente', 'success');
+    adminMessage.classList.remove('hidden');
+    setTimeout(() => adminMessage.classList.add('hidden'), 3000);
+    return;
+  }
+
+  try {
+    const teamRef = window.firebaseRef(window.firebaseDB, 'teamMembers');
+    window.firebaseSet(teamRef, currentTeamMembers).then(() => {
+      localStorage.setItem('teamMembers', JSON.stringify(currentTeamMembers));
+      showNotification('Equipos guardados en la base de datos', 'success');
+      adminMessage.classList.remove('hidden');
+      setTimeout(() => adminMessage.classList.add('hidden'), 3000);
+    }).catch((error) => {
+      console.error('Error guardando equipos:', error);
+      localStorage.setItem('teamMembers', JSON.stringify(currentTeamMembers));
+      showNotification('Error guardando en Firebase - Guardado localmente', 'error');
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    localStorage.setItem('teamMembers', JSON.stringify(currentTeamMembers));
+    showNotification('Error - Guardado localmente', 'error');
+  }
+}
+
+// Resetear a valores por defecto
+function resetTeamMembers() {
+  if (confirm('¿Estás seguro de que querés resetear los equipos a los valores originales? Esto eliminará todos los cambios.')) {
+    currentTeamMembers = {
+      acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
+      consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
+    };
+    renderTeamMembers();
+    updateNameOptions();
+    saveTeamMembers();
+    showNotification('Equipos reseteados a valores originales', 'success');
   }
 }
 
@@ -431,17 +667,21 @@ loginForm.addEventListener('submit', (e) => {
     // ===== Reglas / Helpers =====
     function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
 
-    function updateNameOptions(){
-      const members = teamMembers[selectedTeam] || []; // ← AÑADE || []
-      nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
-      members.forEach(member=>{
-        const option = document.createElement('option');
-        option.value = member;
-        option.textContent = hasExistingReservation(member) ? `${member} (Tiene reserva - clic para cancelar)` : member;
-        nameSelect.appendChild(option);
-      });
-      selectedName = '';
-    }
+    function updateNameOptions() {
+  // Usar currentTeamMembers si admin, sino teamMembers fijos
+  const members = currentUser === 'admin' ? 
+    (currentTeamMembers[selectedTeam] || []) : 
+    (teamMembers[selectedTeam] || []);
+  
+  nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
+  members.forEach(member => {
+    const option = document.createElement('option');
+    option.value = member;
+    option.textContent = hasExistingReservation(member) ? `${member} (Tiene reserva - clic para cancelar)` : member;
+    nameSelect.appendChild(option);
+  });
+  selectedName = '';
+}
 
     teamSelect.addEventListener('change',(e)=>{
       selectedTeam = e.target.value;
@@ -875,24 +1115,27 @@ if (!rot.allowed) {
       });
     }
 
-    function updatePendingPeople(){
-      const reservedNames = Object.values(reservations).map(r => r.name);
-      const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n));
-      const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n));
+function updatePendingPeople() {
+  // Usar currentTeamMembers si admin, sino teamMembers fijos
+  const allMembers = currentUser === 'admin' ? currentTeamMembers : teamMembers;
+  
+  const reservedNames = Object.values(reservations).map(r => r.name);
+  const pendingACCO = allMembers.acco.filter(n => !reservedNames.includes(n));
+  const pendingConsultoria = allMembers.consultoria.filter(n => !reservedNames.includes(n));
 
-      let html = '';
-      html += `
-        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-          <h4 class="font-semibold text-blue-800 mb-3 flex items-center"><div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>Equipo ACCO (${pendingACCO.length} pendientes)</h4>
-          <div class="space-y-1">${pendingACCO.length? pendingACCO.map(n=>`<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
-        </div>`;
-      html += `
-        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-          <h4 class="font-semibold text-green-800 mb-3 flex items-center"><div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>Equipo Consultoría (${pendingConsultoria.length} pendientes)</h4>
-          <div class="space-y-1">${pendingConsultoria.length? pendingConsultoria.map(n=>`<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
-        </div>`;
-      pendingPeople.innerHTML = html;
-    }
+  let html = '';
+  html += `
+    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+      <h4 class="font-semibold text-blue-800 mb-3 flex items-center"><div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>Equipo ACCO (${pendingACCO.length} pendientes)</h4>
+      <div class="space-y-1">${pendingACCO.length ? pendingACCO.map(n => `<div class="text-sm text-blue-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-blue-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
+    </div>`;
+  html += `
+    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+      <h4 class="font-semibold text-green-800 mb-3 flex items-center"><div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>Equipo Consultoría (${pendingConsultoria.length} pendientes)</h4>
+      <div class="space-y-1">${pendingConsultoria.length ? pendingConsultoria.map(n => `<div class="text-sm text-green-700 bg-white px-2 py-1 rounded border">${n}</div>`).join('') : '<p class="text-green-600 text-sm font-medium">✅ Todos tienen reserva</p>'}</div>
+    </div>`;
+  pendingPeople.innerHTML = html;
+}
 
     function updateReservationSummary(){
       const summary = {};
@@ -986,6 +1229,7 @@ if (!rot.allowed) {
   </script>
 </body>
 </html>
+
 
 
 
