@@ -271,74 +271,132 @@
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
         <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
       </div>
-      <!-- PANEL DE REGLAS ACTIVAS + SWITCH ADMIN -->
-      <div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
-        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-          <div>
-            <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
-              <span class="text-4xl">Reglas</span> Reglas Activas del Sistema
-            </h3>
-            <p class="text-sm text-purple-600 mt-1">Solo visibles para Admin</p>
-          </div>
-          <!-- SWITCH PARA PAUSAR REGLAS -->
-          <div class="flex items-center gap-4 bg-white/80 backdrop-blur rounded-xl px-6 py-4 shadow-lg border border-purple-300">
-            <div class="text-right">
-              <div class="text-sm font-semibold text-gray-700">Reglas del sistema</div>
-              <div id="rulesStatusText" class="text-lg font-bold text-green-600">ACTIVADAS</div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
-              <div class="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
-            </label>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-          <!-- Tus reglas aquí (mismo contenido que antes) -->
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600">
-            <div class="font-bold text-purple-700 mb-2">Líderes no repiten mesa</div>
-            <p class="text-gray-700">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-indigo-600">
-            <div class="font-bold text-indigo-700 mb-2">Rotación VIP obligatoria</div>
-            <p class="text-gray-700">Alan, Jose y Laura rotan: Mesa 1 → 2 → 3 → 1...</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-red-600">
-            <div class="font-bold text-red-700 mb-2">Máx. 2 ACCO consecutivos por lado</div>
-            <p class="text-gray-700">No se permiten 3+ seguidos del mismo equipo en un lado de mesa.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-green-600">
-            <div class="font-bold text-green-700 mb-2">Consultoría no se sienta junta</div>
-            <p class="text-gray-700">Ningún miembro de Consultoría puede estar al lado de otro (excepto Jose).</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-orange-600">
-            <div class="font-bold text-orange-700 mb-2">Límite ACCO por sesión</div>
-            <p class="text-gray-700">Máximo 5 ACCO en total o solo 1 mesa con 5+ ACCO.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-pink-600">
-            <div class="font-bold text-pink-700 mb-2">Mezcla obligatoria al llenar</div>
-            <p class="text-gray-700">Una mesa con 8 personas debe tener al menos 1 de cada equipo.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-teal-600">
-            <div class="font-bold text-teal-700 mb-2">No repetir asiento</div>
-            <p class="text-gray-700">Nadie puede ocupar la misma silla dos sesiones consecutivas.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-yellow-600">
-            <div class="font-bold text-yellow-800 mb-2">Analistas no repiten líder</div>
-            <p class="text-gray-700">Un analista no puede estar dos veces seguidas con el mismo líder.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-gray-600">
-            <div class="font-bold text-gray-700 mb-2">Bloqueo manual</div>
-            <p class="text-gray-700">Admin puede bloquear/desbloquear sillas vacías con clic sin nombre.</p>
-          </div>
-          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-cyan-600">
-            <div class="font-bold text-cyan-700 mb-2">Vacaciones automáticas</div>
-            <p class="text-gray-700">Se cancelan reservas y se ocultan del selector automáticamente.</p>
-          </div>
-        </div>
-        <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
-          <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
-        </div>
+      <!-- PANEL DE REGLAS ACTIVAS + SWITCHES INDIVIDUALES -->
+<div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
+  <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+    <div>
+      <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
+        <span class="text-4xl">Reglas</span> Reglas del Sistema
+      </h3>
+      <p class="text-sm text-purple-600 mt-1">Solo visibles y editables para Admin</p>
+    </div>
+
+    <!-- SWITCH MAESTRO -->
+    <div class="flex items-center gap-6 bg-white/90 backdrop-blur rounded-xl px-8 py-5 shadow-lg border border-purple-300">
+      <div class="text-right">
+        <div class="text-sm font-semibold text-gray-700">Todas las reglas</div>
+        <div id="rulesStatusText" class="text-xl font-bold text-green-600">ACTIVADAS</div>
       </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
+        <div class="w-16 h-9 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-purple-600"></div>
+      </label>
+    </div>
+  </div>
+
+  <!-- REGLAS INDIVIDUALES -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <!-- Regla 1 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-purple-700 mb-1">Líderes no repiten mesa</div>
+        <p class="text-gray-700 text-sm">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="leadersDifferentTables" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 2 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-indigo-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-indigo-700 mb-1">Rotación VIP obligatoria</div>
+        <p class="text-gray-700 text-sm">Alan, Jose y Laura rotan: Mesa 1 → 2 → 3 → 1...</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="vipRotation" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 3 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-red-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-red-700 mb-1">Máx. 2 ACCO consecutivos por lado</div>
+        <p class="text-gray-700 text-sm">No se permiten 3+ seguidos del mismo equipo en un lado de mesa.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="maxTwoConsecutiveAcco" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-red-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 4 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-green-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-green-700 mb-1">Consultoría no se sienta junta</div>
+        <p class="text-gray-700 text-sm">Ningún miembro de Consultoría puede estar al lado de otro (excepto Jose).</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="consultoriaNotAdjacent" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 5 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-orange-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-orange-700 mb-1">Límite ACCO por sesión</div>
+        <p class="text-gray-700 text-sm">Máximo 5 ACCO en total o solo 1 mesa con 5+ ACCO.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="accoLimit" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-orange-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 6 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-pink-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-pink-700 mb-1">Mezcla obligatoria al llenar</div>
+        <p class="text-gray-700 text-sm">Una mesa con 8 personas debe tener al menos 1 de cada equipo.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="mixedTeamsRequired" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-pink-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 7 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-teal-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-teal-700 mb-1">No repetir asiento</div>
+        <p class="text-gray-700 text-sm">Nadie puede ocupar la misma silla dos sesiones consecutivas.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="noRepeatSeat" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    <!-- Regla 8 -->
+    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-yellow-600 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-yellow-800 mb-1">Analistas no repiten líder</div>
+        <p class="text-gray-700 text-sm">Un analista no puede estar dos veces seguidas con el mismo líder.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-rule="noRepeatLeader" checked class="sr-only peer rule-switch">
+        <div class="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-yellow-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
+    <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
+  </div>
+</div>
    
       <!-- FIN PANEL DE REGLAS -->
     </main>
@@ -852,9 +910,15 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
         if (accoCount >= 5) return false;
       }
       if (totalInTable === 7) {
-        if (team === 'acco' && consultoriaCount === 0) return false;
-        if (team === 'consultoria' && accoCount === 0) return false;
-        return true;
+        if (isRuleActive('mixedTeamsRequired') && totalInTable === 7) {
+        if (team === 'acco' && consultoriaCount === 0) {
+          showNotification('Una mesa llena debe tener al menos 1 de Consultoría', 'error');
+          return false;
+        }
+        if (team === 'consultoria' && accoCount === 0) {
+          showNotification('Una mesa llena debe tener al menos 1 de ACCO', 'error');
+          return false;
+        }
       }
       return true;
     }
@@ -899,7 +963,7 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
         // Validar si el miembro es un analista y si se está sentando con un líder
         // REGLA: ACCO no puede repetir líder dos días seguidos
                 // REGLA: ACCO no puede estar en la misma MESA que el mismo líder dos días seguidos
-        if (rulesEnabled && selectedTeam === 'acco' && !leaders.includes(selectedName)) {
+        if (isRuleActive('noRepeatLeader') && selectedTeam === 'acco' && !leaders.includes(selectedName)) {
           const targetTable = chair.dataset.table;
           // Revisar si hay un líder en esta mesa
           for (let id in reservations) {
@@ -966,8 +1030,8 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
         }
         // Validaciones
         if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
-        if (rulesEnabled && !canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
-        if (rulesEnabled && !canMaintainMixedTeams(table, selectedTeam)) {
+        if (isRuleActive('leadersDifferentTables') && !canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
+        if (isRuleActive('accoLimit') && !canMaintainMixedTeams(table, selectedTeam)) {
           if (selectedTeam === 'consultoria') showNotification('Máximo 3 de Consultoría por mesa.', 'error');
           else {
             let mesasCon5ACCO = 0;
@@ -980,19 +1044,19 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
           }
           return;
         }
-        if (rulesEnabled && !canSitInChair(table, chairNum, selectedTeam, selectedName)) {
+        if (isRuleActive('consultoriaNotAdjacent') && !canSitInChair(table, chairNum, selectedTeam, selectedName)) {
           showNotification(selectedTeam === 'consultoria' ? 'Consultoría no puede sentarse junto a otra persona del mismo equipo (excepto Jose).' : 'Máximo 2 ACCO consecutivas.', 'error');
           return;
         }
         // No repetir asiento consecutivo
         const prevSeatId = Object.entries(prevReservations).find(([,r])=> r.name===selectedName)?.[0];
-        if (rulesEnabled && prevSeatId === chairId) {
+        if (isRuleActive('noRepeatSeat') && prevSeatId === chairId) {
           showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
           return;
         }
         // Rotación 1→2→3 para Alan/Jose/Laura
 const rot = checkRotationForVIP(selectedName, table);
-if (rulesEnabled && !rot.allowed) {
+if (isRuleActive('vipRotation') && !rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
@@ -1280,53 +1344,82 @@ document.getElementById('addConsultoriaMember').addEventListener('click', () => 
   input.value = '';
   saveTeamMembers();
 });
-// =============================================
-// PANEL DE REGLAS + SWITCH (solo una vez!)
-// =============================================
-function updateRulesSwitchUI() {
-  const switchEl = document.getElementById('rulesMasterSwitch');
-  const statusText = document.getElementById('rulesStatusText');
-  const footerText = document.getElementById('rulesFooterText');
 
-  if (!switchEl || !statusText || !footerText) return;
+// ==================== NUEVO SISTEMA DE REGLAS CON SWITCHES INDIVIDUALES ====================
+let activeRules = {
+  leadersDifferentTables: true,
+  vipRotation: true,
+  maxTwoConsecutiveAcco: true,
+  consultoriaNotAdjacent: true,
+  accoLimit: true,
+  mixedTeamsRequired: true,
+  noRepeatSeat: true,
+  noRepeatLeader: true
+};
 
-  switchEl.checked = rulesEnabled;
-  if (rulesEnabled) {
-    statusText.textContent = "ACTIVADAS";
-    statusText.className = "text-lg font-bold text-green-600";
-    footerText.textContent = "Todas las reglas están siendo aplicadas automáticamente";
-  } else {
-    statusText.textContent = "DESACTIVADAS";
-    statusText.className = "text-lg font-bold text-red-600";
-    footerText.textContent = "¡MODO LIBRE! Las reglas están pausadas por el Admin";
-  }
+function isRuleActive(rule) {
+  return activeRules[rule] !== false;
 }
 
-function updateRulesPanelVisibility() {
-  const panel = document.getElementById('rulesPanel');
-  if (currentUser === 'admin') {
-    panel.classList.remove('hidden');
-    updateRulesSwitchUI(); // ← actualiza el switch al mostrarlo
-  } else {
-    panel.classList.add('hidden');
-  }
-}
-
-// Evento del switch (solo una vez en toda la vida del script)
-document.getElementById('rulesMasterSwitch')?.addEventListener('change', function () {
-  if (currentUser !== 'admin') {
-    this.checked = rulesEnabled;
-    showNotification('Solo el Admin puede pausar las reglas', 'error');
-    return;
-  }
-  rulesEnabled = this.checked;
-  updateRulesSwitchUI();
-  showNotification(
-    rulesEnabled ? 'Reglas REACTIVADAS' : 'Reglas PAUSADAS (modo libre)',
-    rulesEnabled ? 'success' : 'error'
-  );
+// Cargar estado de reglas desde Firebase
+window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'system/rules'), (snap) => {
+  const data = snap.val();
+  if (data) activeRules = { ...activeRules, ...data };
+  syncRuleSwitches();
+  updateMasterSwitch();
 });
 
+// Sincronizar switches individuales
+function syncRuleSwitches() {
+  document.querySelectorAll('.rule-switch').forEach(sw => {
+    sw.checked = isRuleActive(sw.dataset.rule);
+  });
+  updateFooter();
+}
+
+// Actualizar switch maestro
+function updateMasterSwitch() {
+  const master = document.getElementById('rulesMasterSwitch');
+  const allOn = Object.values(activeRules).every(v => v);
+  const allOff = Object.values(activeRules).every(v => !v);
+  master.checked = allOn;
+  master.indeterminate = !allOn && !allOff;
+
+  const status = document.getElementById('rulesStatusText');
+  if (allOn) status.innerHTML = '<span class="text-green-600">TODAS ACTIVADAS</span>';
+  else if (allOff) status.innerHTML = '<span class="text-red-600">TODAS DESACTIVADAS</span>';
+  else status.innerHTML = '<span class="text-orange-600">MIXTO</span>';
+  updateFooter();
+}
+
+function updateFooter() {
+  const count = Object.values(activeRules).filter(v => v).length;
+  document.getElementById('rulesFooterText').textContent = `${count} de 8 reglas activas`;
+}
+
+// Eventos switches individuales
+document.querySelectorAll('.rule-switch').forEach(sw => {
+  sw.addEventListener('change', function () {
+    if (currentUser !== 'admin') { this.checked = !this.checked; showNotification('Solo Admin', 'error'); return; }
+    const rule = this.dataset.rule;
+    activeRules[rule] = this.checked;
+    window.firebaseSet(window.firebaseRef(window.firebaseDB, `system/rules/${rule}`), this.checked);
+    updateMasterSwitch();
+    showNotification(`Regla "${this.closest('div').querySelector('.font-bold').textContent}" ${this.checked ? 'activada' : 'desactivada'}`, this.checked ? 'success' : 'error');
+  });
+});
+
+// Switch maestro
+document.getElementById('rulesMasterSwitch').addEventListener('change', function () {
+  if (currentUser !== 'admin') { this.checked = !this.checked; showNotification('Solo Admin', 'error'); return; }
+  const state = this.checked;
+  Object.keys(activeRules).forEach(rule => {
+    activeRules[rule] = state;
+    window.firebaseSet(window.firebaseRef(window.firebaseDB, `system/rules/${rule}`), state);
+  });
+  syncRuleSwitches();
+  showNotification(state ? 'TODAS las reglas activadas' : 'TODAS las reglas desactivadas', state ? 'success' : 'error');
+});    
     
 // === INICIO: Solo Firebase, sin datos locales ===
 renderSessionBanner();
@@ -1344,5 +1437,6 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
  
 </body>
 </html>
+
 
 
