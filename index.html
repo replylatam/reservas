@@ -539,7 +539,7 @@ function updatePermissionsUI() {
 function setSession(user) {
   currentUser = user;
   localStorage.setItem('loggedUser', user);
-  // Admin puede cambiar de equipo
+
   if (user === 'admin') {
     selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
     teamSelect.removeAttribute('disabled');
@@ -550,10 +550,12 @@ function setSession(user) {
     teamSelect.setAttribute('disabled', 'disabled');
     teamSelect.classList.add('opacity-70', 'cursor-not-allowed');
   }
+
   localStorage.setItem('selectedTeam', selectedTeam);
   teamSelect.value = selectedTeam;
   sessionBar.classList.remove('hidden');
   whoami.textContent = user;
+
   if (user === 'acco') {
     teamPill.textContent = 'ACCO';
     teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700';
@@ -564,51 +566,25 @@ function setSession(user) {
     teamPill.textContent = 'Admin';
     teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700';
   }
-  updateNameOptions(); // ← ahora no falla
+
+  updateNameOptions();
   updatePermissionsUI();
-  updateRulesPanelVisibility();
-      // === ACTUALIZAR ESTADO DEL SWITCH Y TEXTO ===
-    function updateRulesSwitchUI() {
-      const switchEl = document.getElementById('rulesMasterSwitch');
-      const statusText = document.getElementById('rulesStatusText');
-      const footerText = document.getElementById('rulesFooterText');
-      if (!switchEl) return;
-      switchEl.checked = rulesEnabled;
-      if (rulesEnabled) {
-        statusText.textContent = "ACTIVADAS";
-        statusText.className = "text-lg font-bold text-green-600";
-        footerText.textContent = "Todas las reglas están siendo aplicadas automáticamente";
-      } else {
-        statusText.textContent = "DESACTIVADAS";
-        statusText.className = "text-lg font-bold text-red-600";
-        footerText.textContent = "¡MODO LIBRE! Las reglas están pausadas por el Admin";
-      }
-    }
-    // Evento del switch
-    document.getElementById('rulesMasterSwitch')?.addEventListener('change', function() {
-      if (currentUser !== 'admin') {
-        this.checked = rulesEnabled;
-        showNotification('Solo el Admin puede pausar las reglas', 'error');
-        return;
-      }
-      rulesEnabled = this.checked;
-      updateRulesSwitchUI();
-      showNotification(rulesEnabled ? 'Reglas REACTIVADAS' : 'Reglas PAUSADAS (modo libre)', rulesEnabled ? 'success' : 'error');
-    });
- 
-  // Mostrar/ocultar panel de administración de equipos
+
   const adminTeamsPanel = document.getElementById('adminTeamsPanel');
   if (currentUser === 'admin') {
     adminTeamsPanel.classList.remove('hidden');
+    updateVacationsUI();
   } else {
     adminTeamsPanel.classList.add('hidden');
   }
-  if (currentUser === 'admin') {
-    updateVacationsUI();
-  }
+
   closeLoginModal();
   showNotification('Sesión iniciada', 'success');
+
+  // ← AQUÍ SÍ: actualizar panel de reglas al final
+  updateRulesPanelVisibility();
 }
+    
     function tryAutoLogin(){
       const saved=localStorage.getItem('loggedUser');
       if(saved==='acco' || saved==='consultoria'){ setSession(saved); return true; }
@@ -1273,7 +1249,54 @@ document.getElementById('addConsultoriaMember').addEventListener('click', () => 
   input.value = '';
   saveTeamMembers();
 });
-   
+// =============================================
+// PANEL DE REGLAS + SWITCH (solo una vez!)
+// =============================================
+function updateRulesSwitchUI() {
+  const switchEl = document.getElementById('rulesMasterSwitch');
+  const statusText = document.getElementById('rulesStatusText');
+  const footerText = document.getElementById('rulesFooterText');
+
+  if (!switchEl || !statusText || !footerText) return;
+
+  switchEl.checked = rulesEnabled;
+  if (rulesEnabled) {
+    statusText.textContent = "ACTIVADAS";
+    statusText.className = "text-lg font-bold text-green-600";
+    footerText.textContent = "Todas las reglas están siendo aplicadas automáticamente";
+  } else {
+    statusText.textContent = "DESACTIVADAS";
+    statusText.className = "text-lg font-bold text-red-600";
+    footerText.textContent = "¡MODO LIBRE! Las reglas están pausadas por el Admin";
+  }
+}
+
+function updateRulesPanelVisibility() {
+  const panel = document.getElementById('rulesPanel');
+  if (currentUser === 'admin') {
+    panel.classList.remove('hidden');
+    updateRulesSwitchUI(); // ← actualiza el switch al mostrarlo
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+// Evento del switch (solo una vez en toda la vida del script)
+document.getElementById('rulesMasterSwitch')?.addEventListener('change', function () {
+  if (currentUser !== 'admin') {
+    this.checked = rulesEnabled;
+    showNotification('Solo el Admin puede pausar las reglas', 'error');
+    return;
+  }
+  rulesEnabled = this.checked;
+  updateRulesSwitchUI();
+  showNotification(
+    rulesEnabled ? 'Reglas REACTIVADAS' : 'Reglas PAUSADAS (modo libre)',
+    rulesEnabled ? 'success' : 'error'
+  );
+});
+
+    
 // === INICIO: Solo Firebase, sin datos locales ===
 renderSessionBanner();
 // Mostrar estado de conexión
@@ -1290,3 +1313,4 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
  
 </body>
 </html>
+
