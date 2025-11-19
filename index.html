@@ -260,6 +260,37 @@
   </div>
 </div>
       <!-- Panel de Administración de Equipos (solo admin) -->
+      <!-- Panel de Gestión de Lineamientos / Reglas (solo admin) -->
+<div id="adminRulesPanel" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestión de Lineamientos y Reglas</h3>
+  
+  <!-- Lista de reglas activas -->
+  <div id="activeRulesList" class="space-y-3 mb-6">
+    <p class="text-sm text-gray-500">Cargando reglas...</p>
+  </div>
+
+  <!-- Formulario para agregar nueva regla -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <h4 class="font-medium text-blue-800 mb-3">Agregar nuevo lineamiento</h4>
+    <div class="flex gap-3">
+      <input 
+        type="text" 
+        id="newRuleText" 
+        placeholder="Ej: Esta semana no aplica rotación de líderes" 
+        class="flex-1 px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+      >
+      <button id="addRuleBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition">
+        Agregar
+      </button>
+    </div>
+  </div>
+
+  <!-- Banner público de lineamientos (visible para todos) -->
+  <div id="publicRulesBanner" class="mt-8 bg-gradient-to-r from-purple-100 to-pink-100 border-l-4 border-purple-500 p-5 rounded-r-lg hidden">
+    <h4 class="font-bold text-purple-800 mb-3 text-lg">Lineamientos Especiales Activos</h4>
+    <div id="publicRulesList" class="space-y-2"></div>
+  </div>
+</div>
 <div id="adminTeamsPanel" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
   <h3 class="text-xl font-semibold text-gray-800 mb-4">Administrar Equipos (Solo Admin)</h3>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1304,11 +1335,161 @@ showNotification('Conectando a la base de datos...', 'success');
 if (!tryAutoLogin()) {
   openLoginModal();
 }
+
+// ===== GESTIÓN DE LINEAMIENTOS / REGLAS =====
+  let activeRules = []; // { id, text, timestamp }
+
+  // Cargar reglas desde Firebase
+  function loadRules() {
+    const rulesRef = window.firebaseRef(window.firebaseDB, 'rules');
+    window.firebaseOnValue(rulesRef, (snapshot) => {
+      const data = snapshot.val();
+      activeRules = data ? Object.entries(data).map(([id, rule]) => ({ id, ...rule })) : [];
+      activeRules.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      updateRulesUI();
+    });
+  }
+
+  // Guardar todas las reglas
+  function saveRules() {
+    const rulesRef = window.firebaseRef(window.firebaseDB, 'rules');
+    const rulesObj = {};
+    activeRules.forEach(rule => {
+      rulesObj[rule.id] = {
+        text: rule.text,
+        timestamp: rule.timestamp || Date.now()
+      };
+    });
+    window.firebaseSet(rulesRef, rulesObj);
+  }
+
+  // Mostrar reglas en los paneles
+  function updateRulesUI() {
+    const adminList = document.getElementById('activeRulesList');
+    const publicList = document.getElementById('publicRulesList');
+    const publicBanner = document.getElementById('publicRulesBanner');
+
+    if (activeRules.length === 0) {
+      adminList.innerHTML = '<p class="text-gray-500 italic">No hay lineamientos especiales activos.</p>';
+      publicBanner.classList.add('hidden');
+      return;
+    }
+
+    let adminHtml = '';
+    let publicHtml = '';
+
+    activeRules.forEach(rule => {
+      const date = new Date(rule.timestamp).toLocaleDateString('es-AR', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+
+      // Para admin: con botón eliminar
+      if (currentUser === 'admin') {
+        adminHtml += `
+          <div class="flex items-start justify-between bg-gray-50 p-3 rounded-lg border">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-800">${rule.text}</p>
+              <p class="text-xs text-gray-500 mt-1">Agregado: ${date}</p>
+            </div>
+            <button onclick="deleteRule('${rule.id}')" class="ml-3 text-red-600 hover:text-red-800 text-xs font-medium">
+              Eliminar
+            </button>
+          </div>`;
+      }
+
+      // Para todos: solo mostrar
+      publicHtml += `
+        <div class="flex items-start gap-3">
+          <span class="text-purple-600 text-xl mt-1">📌</span>
+          <div>
+            <p class="font-medium text-gray-800">${rule.text}</p>
+            <p class="text-xs text-gray-500">(${date})</p>
+          </div>
+        </div>`;
+    });
+
+    if (currentUser === 'admin') {
+      adminList.innerHTML = adminHtml || '<p class="text-gray-500">No hay reglas activas.</p>';
+    }
+    publicList.innerHTML = publicHtml;
+    publicBanner.classList.remove('hidden');
+  }
+
+  // Eliminar regla (solo admin)
+  window.deleteRule = function(id) {
+    if (!confirm('¿Eliminar este lineamiento?')) return;
+    activeRules = activeRules.filter(r => r.id !== id);
+    saveRules();
+    showNotification('Lineamiento eliminado', 'success');
+  };
+
+  // Agregar nueva regla
+  document.getElementById('addRuleBtn')?.addEventListener('click', () => {
+    if (currentUser !== 'admin') {
+      showNotification('Solo admin puede agregar reglas', 'error');
+      return;
+    }
+    const input = document.getElementById('newRuleText');
+    const text = input.value.trim();
+    if (!text) {
+      showNotification('Escribe un lineamiento', 'error');
+      return;
+    }
+    if (text.length > 200) {
+      showNotification('Máximo 200 caracteres', 'error');
+      return;
+    }
+
+    const newRule = {
+      id: Date.now().toString(),
+      text: text,
+      timestamp: Date.now()
+    };
+
+    activeRules.unshift(newRule);
+    saveRules();
+    input.value = '';
+    showNotification('Lineamiento agregado', 'success');
+  });
+
+  // Enter en el input también agrega
+  document.getElementById('newRuleText')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') document.getElementById('addRuleBtn').click();
+  });
+
+  // Cargar reglas al iniciar
+  window.initFirebaseBridge = (function(original) {
+    return function() {
+      if (original) original();
+      loadRules();
+    };
+  })(window.initFirebaseBridge);
+
+  // Mostrar panel solo si es admin
+  function updateRulesPanelVisibility() {
+    const panel = document.getElementById('adminRulesPanel');
+    if (currentUser === 'admin') {
+      panel.classList.remove('hidden');
+    } else {
+      panel.classList.add('hidden');
+    }
+  }
+
+  // Hook en setSession para actualizar visibilidad
+  const originalSetSession = setSession;
+  setSession = function(user) {
+    originalSetSession(user);
+    updateRulesPanelVisibility();
+  };
+
+  // Ejecutar al cargar si ya está logueado
+  if (currentUser) updateRulesPanelVisibility();
 // === FIN ===
   </script>
   
 </body>
 </html>
+
 
 
 
