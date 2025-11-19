@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sistema de Reservas de Mesas</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Señal para saber cuándo el SDK modular de Firebase está listo -->
   <script>
     window.addEventListener("firebase-sdk-ready", () => {
@@ -14,12 +13,10 @@
       }
     });
   </script>
-
   <!-- Firebase SDK (MÓDULO) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
     const firebaseConfig = {
       apiKey: "AIzaSyAhlbBwz7Gu_RR82y6fw0w5CRDjmWvrK4A",
       authDomain: "reservas-355df.firebaseapp.com",
@@ -30,10 +27,8 @@
       appId: "1:105135950869:web:c2f1c4a15fbd23ea46121c",
       measurementId: "G-FDF1XWZ7J5"
     };
-
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
-
     // Exponer helpers para el script no-modular
     window.firebaseDB = database;
     window.firebaseRef = ref;
@@ -41,11 +36,9 @@
     window.firebaseOnValue = onValue;
     window.firebaseRemove = remove;
     window.firebaseGet = get;
-
     // Avisar que el SDK quedó listo
     window.dispatchEvent(new Event("firebase-sdk-ready"));
   </script>
-
   <style>
     body { box-sizing: border-box; }
     .chair { transition: all 0.3s ease; cursor: pointer; }
@@ -83,7 +76,6 @@
       <div class="mt-4 text-xs text-gray-400 text-center">Usuarios válidos: acco / consultoria</div>
     </div>
   </div>
-
   <!-- BARRA SUPERIOR DE SESIÓN -->
   <div id="sessionBar" class="hidden max-w-7xl mx-auto -mt-4 mb-4">
     <div class="flex items-center justify-between bg-white/70 backdrop-blur rounded-xl p-3 shadow">
@@ -94,7 +86,6 @@
       </div>
     </div>
   </div>
-
   <div class="max-w-7xl mx-auto">
     <header class="text-center mb-8">
       <h1 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Reservas</h1>
@@ -121,10 +112,8 @@
         </div>
       </div>
     </header>
-
     <!-- Banner de ciclo (sesión) -->
     <div id="sessionBanner" class="max-w-7xl mx-auto mb-6 hidden"></div>
-
     <main>
       <div class="flex justify-center items-center gap-8 mb-8">
         <!-- Sala Chica -->
@@ -145,10 +134,8 @@
             <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="1" data-chair="8" style="right: -32px; top: 70%;">8</div>
           </div>
         </div>
-
         <!-- Línea divisoria -->
         <div class="divider"></div>
-
         <!-- Sala Grande -->
         <div class="flex flex-col items-center">
           <h2 class="text-xl font-semibold text-gray-700 mb-6">Sala Grande</h2>
@@ -170,7 +157,6 @@
                 <div class="chair absolute w-8 h-8 bg-gray-300 border-2 border-gray-400 rounded flex items-center justify-center text-xs font-bold text-gray-700" data-table="2" data-chair="16" style="right: -32px; top: 70%;">16</div>
               </div>
             </div>
-
             <!-- Mesa 3 -->
             <div class="flex flex-col items-center">
               <div class="table-container relative">
@@ -191,7 +177,6 @@
           </div>
         </div>
       </div>
-
       <!-- Panel de Control -->
       <div class="bg-white rounded-lg shadow-lg p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Panel de Reservas</h3>
@@ -222,7 +207,6 @@
   </button>
 </div>
       </div>
-
       <!-- Instrucciones de Uso -->
       <div class="mt-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
         <h3 class="text-lg font-semibold text-green-800 mb-2">🚀 Sistema en Tiempo Real Activado:</h3>
@@ -234,7 +218,6 @@
           <p><strong>🔒 Admin:</strong> Sin nombre seleccionado, clic en silla para bloquear/desbloquear (solo sillas vacías)</p>
         </div>
       </div>
-
       <!-- Personas de Vacaciones (Visible para todos) -->
 <div id="vacationsBanner" class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg hidden">
   <h3 class="text-lg font-semibold text-yellow-800 mb-2">Personas de Vacaciones</h3>
@@ -272,7 +255,6 @@
         <button id="addAccoMember" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium">Agregar</button>
       </div>
     </div>
-
     <!-- Equipo Consultoría -->
     <div>
       <h4 class="font-medium text-green-700 mb-2">Equipo Consultoría</h4>
@@ -284,12 +266,81 @@
     </div>
   </div>
 </div>
-
       <!-- Resumen de Reservas -->
       <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
         <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
       </div>
+      <!-- PANEL DE REGLAS ACTIVAS + SWITCH ADMIN -->
+      <div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
+        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div>
+            <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
+              <span class="text-4xl">Reglas</span> Reglas Activas del Sistema
+            </h3>
+            <p class="text-sm text-purple-600 mt-1">Solo visibles para Admin</p>
+          </div>
+          <!-- SWITCH PARA PAUSAR REGLAS -->
+          <div class="flex items-center gap-4 bg-white/80 backdrop-blur rounded-xl px-6 py-4 shadow-lg border border-purple-300">
+            <div class="text-right">
+              <div class="text-sm font-semibold text-gray-700">Reglas del sistema</div>
+              <div id="rulesStatusText" class="text-lg font-bold text-green-600">ACTIVADAS</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
+              <div class="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+          <!-- Tus reglas aquí (mismo contenido que antes) -->
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600">
+            <div class="font-bold text-purple-700 mb-2">Líderes no repiten mesa</div>
+            <p class="text-gray-700">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-indigo-600">
+            <div class="font-bold text-indigo-700 mb-2">Rotación VIP obligatoria</div>
+            <p class="text-gray-700">Alan, Jose y Laura rotan: Mesa 1 → 2 → 3 → 1...</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-red-600">
+            <div class="font-bold text-red-700 mb-2">Máx. 2 ACCO consecutivos por lado</div>
+            <p class="text-gray-700">No se permiten 3+ seguidos del mismo equipo en un lado de mesa.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-green-600">
+            <div class="font-bold text-green-700 mb-2">Consultoría no se sienta junta</div>
+            <p class="text-gray-700">Ningún miembro de Consultoría puede estar al lado de otro (excepto Jose).</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-orange-600">
+            <div class="font-bold text-orange-700 mb-2">Límite ACCO por sesión</div>
+            <p class="text-gray-700">Máximo 5 ACCO en total o solo 1 mesa con 5+ ACCO.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-pink-600">
+            <div class="font-bold text-pink-700 mb-2">Mezcla obligatoria al llenar</div>
+            <p class="text-gray-700">Una mesa con 8 personas debe tener al menos 1 de cada equipo.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-teal-600">
+            <div class="font-bold text-teal-700 mb-2">No repetir asiento</div>
+            <p class="text-gray-700">Nadie puede ocupar la misma silla dos sesiones consecutivas.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-yellow-600">
+            <div class="font-bold text-yellow-800 mb-2">Analistas no repiten líder</div>
+            <p class="text-gray-700">Un analista no puede estar dos veces seguidas con el mismo líder.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-gray-600">
+            <div class="font-bold text-gray-700 mb-2">Bloqueo manual</div>
+            <p class="text-gray-700">Admin puede bloquear/desbloquear sillas vacías con clic sin nombre.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-cyan-600">
+            <div class="font-bold text-cyan-700 mb-2">Vacaciones automáticas</div>
+            <p class="text-gray-700">Se cancelan reservas y se ocultan del selector automáticamente.</p>
+          </div>
+        </div>
+        <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
+          <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
+        </div>
+      </div>
+   
+      <!-- FIN PANEL DE REGLAS -->
     </main>
   </div>
   <!-- MODAL HISTÓRICO -->
@@ -303,19 +354,15 @@
     <div id="historyContent" class="space-y-6"></div>
   </div>
 </div>
-
   <script>
-
     // === HISTÓRICO DE ÚLTIMOS 3 DÍAS DE OFICINA ===
 // === HISTÓRICO DE ÚLTIMOS 3 DÍAS DE OFICINA (CORREGIDO) ===
 async function loadHistory() {
   const historyContent = document.getElementById('historyContent');
   historyContent.innerHTML = '<p class="text-center text-gray-500">Cargando histórico...</p>';
-
   const dates = [];
   let current = new Date();
   let found = 0;
-
   // Retroceder hasta encontrar 3 días de oficina (Martes o Jueves)
   while (found < 3 && current > new Date('2020-01-01')) {
     current.setDate(current.getDate() - 1);
@@ -325,9 +372,7 @@ async function loadHistory() {
       found++;
     }
   }
-
   const history = {};
-
   // Cargar reservas de cada fecha usando get()
   for (let date of dates) {
     const path = `reservations/${date}`;
@@ -341,32 +386,28 @@ async function loadHistory() {
       history[date] = {};
     }
   }
-
   // Renderizar
   let html = '';
   for (let i = 0; i < dates.length; i++) {
     const date = dates[i];
     const data = history[date];
-    const niceDate = new Date(date).toLocaleDateString('es-AR', { 
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    const niceDate = new Date(date).toLocaleDateString('es-AR', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
-
     html += `
       <div class="bg-gray-50 p-4 rounded-lg border">
         <h3 class="font-bold text-lg text-gray-800 mb-3">${niceDate}</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">`;
-
     for (let table = 1; table <= 3; table++) {
       const tableName = table === 1 ? 'Mesa 1 (Chica)' : `Mesa ${table} (Grande)`;
       const seats = Object.entries(data)
         .filter(([id, r]) => r && r.table == table)
         .sort((a, b) => a[1].chair - b[1].chair);
-
       html += `
         <div>
           <div class="font-medium text-gray-700 mb-1">${tableName}</div>
           <div class="space-y-1">`;
-      
+     
       if (seats.length === 0) {
         html += `<p class="text-gray-400 italic">Sin reservas</p>`;
       } else {
@@ -380,10 +421,8 @@ async function loadHistory() {
       }
       html += `</div></div>`;
     }
-
     html += `</div></div>`;
   }
-
   historyContent.innerHTML = html || '<p class="text-center text-gray-500">No hay datos históricos disponibles.</p>';
 }
     let reservations = {};
@@ -392,7 +431,7 @@ async function loadHistory() {
     // Función para cargar las reservas anteriores (esto debe hacerse al cargar la página o al obtener las reservas desde Firebase)
 function loadPrevSessionReservations() {
   const prevPath = `reservations/${SESSION.prevSessionDate}`;
-  
+ 
   try {
     const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
     window.firebaseOnValue(prevRef, (snapshot) => {
@@ -403,25 +442,24 @@ function loadPrevSessionReservations() {
     console.error("Error al cargar las reservas previas:", e);
   }
 }
-
     let selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
     let selectedName = '';
     let currentUser = null; // 'acco' | 'consultoria'
-
 // Equipos dinámicos (se cargarán desde Firebase)
 let teamMembers = {
   acco: [],
   consultoria: []
 };
-
 let vacations = {}; // { "Laura": true, "Jose": true }
-
+   
+// === CONTROL GLOBAL DE REGLAS (Admin) ===
+let rulesEnabled = true; // por defecto activas
+   
 // Valores por defecto (solo si no hay datos en Firebase)
 const defaultTeamMembers = {
   acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
   consultoria: ['Luciana', 'Luchi', 'Guille', 'Nahir', 'Jose', 'Elian', 'Maurimar', 'Estefania']
 };
-
     // Refs DOM
     const teamSelect = document.getElementById('teamSelect');
     const nameSelect = document.getElementById('nameSelect');
@@ -431,23 +469,19 @@ const defaultTeamMembers = {
     const reservationSummary = document.getElementById('reservationSummary');
     const pendingPeople = document.getElementById('pendingPeople');
     const currentUrl = document.getElementById('currentUrl');
-
     const loginModal = document.getElementById('loginModal');
-    const loginForm  = document.getElementById('loginForm');
-    const loginUser  = document.getElementById('loginUser');
-    const loginPass  = document.getElementById('loginPass');
+    const loginForm = document.getElementById('loginForm');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
     const loginError = document.getElementById('loginError');
-
     const sessionBar = document.getElementById('sessionBar');
-    const whoami     = document.getElementById('whoami');
-    const teamPill   = document.getElementById('teamPill');
-    const logoutBtn  = document.getElementById('logoutBtn');
+    const whoami = document.getElementById('whoami');
+    const teamPill = document.getElementById('teamPill');
+    const logoutBtn = document.getElementById('logoutBtn');
     const connectionStatus = document.getElementById('connectionStatus');
     const sessionBanner = document.getElementById('sessionBanner');
-
     // Mostrar URL actual
     currentUrl.textContent = window.location.href;
-
     // ===== Ciclo Martes/Jueves =====
     function z(n){ return String(n).padStart(2,'0'); }
     function formatYMD(d){ return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
@@ -477,7 +511,6 @@ const defaultTeamMembers = {
       return { canReserve, nextS, prevS, nextSessionDate: formatYMD(nextS), prevSessionDate: formatYMD(prevS), label };
     }
     let SESSION = getSessionInfo();
-
     function renderSessionBanner(){
       sessionBanner.classList.remove('hidden');
       const nice = (d)=> d.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'short',day:'numeric'});
@@ -487,7 +520,6 @@ const defaultTeamMembers = {
           <div class="text-xs text-gray-600">Reservas para: <strong>${nice(SESSION.nextS)}</strong> · Comparando con: <strong>${nice(SESSION.prevS)}</strong></div>
         </div>`;
     }
-
     // ===== Login & permisos =====
     function openLoginModal(){ loginModal.classList.remove('hidden'); loginModal.classList.add('flex'); document.body.style.overflow='hidden'; loginUser.focus(); }
 function closeLoginModal() {
@@ -508,7 +540,6 @@ function setSession(user) {
   currentUser = user;
   localStorage.setItem('loggedUser', user);
 
-  // Admin puede cambiar de equipo
   if (user === 'admin') {
     selectedTeam = localStorage.getItem('selectedTeam') || 'acco';
     teamSelect.removeAttribute('disabled');
@@ -522,7 +553,6 @@ function setSession(user) {
 
   localStorage.setItem('selectedTeam', selectedTeam);
   teamSelect.value = selectedTeam;
-
   sessionBar.classList.remove('hidden');
   whoami.textContent = user;
 
@@ -537,56 +567,51 @@ function setSession(user) {
     teamPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700';
   }
 
-  updateNameOptions(); // ← ahora no falla
+  updateNameOptions();
   updatePermissionsUI();
-  
-  // Mostrar/ocultar panel de administración de equipos
+
   const adminTeamsPanel = document.getElementById('adminTeamsPanel');
   if (currentUser === 'admin') {
     adminTeamsPanel.classList.remove('hidden');
+    updateVacationsUI();
   } else {
     adminTeamsPanel.classList.add('hidden');
-  }
-  if (currentUser === 'admin') {
-    updateVacationsUI();
   }
 
   closeLoginModal();
   showNotification('Sesión iniciada', 'success');
-}
 
+  // ← AQUÍ SÍ: actualizar panel de reglas al final
+  updateRulesPanelVisibility();
+}
+    
     function tryAutoLogin(){
       const saved=localStorage.getItem('loggedUser');
       if(saved==='acco' || saved==='consultoria'){ setSession(saved); return true; }
       return false;
     }
-
 loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
   loginError.classList.add('hidden');
   const u = loginUser.value.trim().toLowerCase();
   const p = loginPass.value;
-  
+ 
   const okAcco = (u === 'acco' && p === 'botaco1234');
   const okCons = (u === 'consultoria' && p === 'consultor1234');
   const okAdmin = (u === 'admin' && p === 'reply'); // Aquí agregamos el admin
-  
+ 
   if (okAcco) return setSession('acco');
   if (okCons) return setSession('consultoria');
   if (okAdmin) return setSession('admin'); // ← Solo esto
-
   loginError.classList.remove('hidden');
 });
-
     logoutBtn.addEventListener('click',()=>{
       localStorage.removeItem('loggedUser');
       showNotification('Sesión cerrada');
       location.reload();
     });
-
     // ===== Reglas / Helpers =====
     function hasExistingReservation(name){ return Object.values(reservations).some(r => r.name===name); }
-
     function updateNameOptions(){
   const members = (teamMembers[selectedTeam] || []).filter(m => !vacations[m]);
   nameSelect.innerHTML = '<option value="">Selecciona un nombre</option>';
@@ -600,11 +625,9 @@ loginForm.addEventListener('submit', (e) => {
   });
   selectedName = '';
 }
-
     function updateTeamMemberLists() {
   const accoList = document.getElementById('accoMembersList');
   const consultoriaList = document.getElementById('consultoriaMembersList');
-
   // ACCO
   accoList.innerHTML = '';
   teamMembers.acco.forEach(name => {
@@ -616,7 +639,6 @@ loginForm.addEventListener('submit', (e) => {
     `;
     accoList.appendChild(li);
   });
-
   // Consultoría
   consultoriaList.innerHTML = '';
   teamMembers.consultoria.forEach(name => {
@@ -628,7 +650,6 @@ loginForm.addEventListener('submit', (e) => {
     `;
     consultoriaList.appendChild(li);
   });
-
   // Re-asignar eventos de eliminación
   document.querySelectorAll('.removeMember').forEach(btn => {
     btn.onclick = function() {
@@ -645,24 +666,19 @@ loginForm.addEventListener('submit', (e) => {
     };
   });
 }
-
     teamSelect.addEventListener('change',(e)=>{
       selectedTeam = e.target.value;
       localStorage.setItem('selectedTeam', selectedTeam);
       updateNameOptions();
     });
-
     nameSelect.addEventListener('change',(e)=>{ selectedName=e.target.value; });
-
 clearAllBtn.addEventListener('click', () => {
   if (currentUser !== 'admin') {
     showNotification('Solo el usuario ADMIN puede limpiar todas las reservas', 'error');
     return;
   }
-
   const ok = confirm('¿Seguro que querés eliminar TODAS las reservas?');
   if (!ok) return;
-
   // 🧹 Limpiar reservas
   reservations = {};
   saveReservations();
@@ -672,38 +688,30 @@ clearAllBtn.addEventListener('click', () => {
   updateNameOptions();
   showNotification('Todas las reservas fueron eliminadas', 'success');
 });
-
-
     shareBtn.addEventListener('click',()=>{
       const url=window.location.href;
       if(navigator.share){ navigator.share({title:'Sistema de Reservas de Mesas', text:'Entra para hacer tu reserva de mesa', url}); }
       else { navigator.clipboard.writeText(url).then(()=>showNotification('Link copiado 📋','success')); }
     });
-
     // === EVENTOS HISTÓRICO ===
 document.getElementById('historyBtn').addEventListener('click', () => {
   document.getElementById('historyModal').classList.remove('hidden');
   document.getElementById('historyModal').classList.add('flex');
   loadHistory();
 });
-
 document.getElementById('closeHistoryModal').addEventListener('click', () => {
   document.getElementById('historyModal').classList.add('hidden');
   document.getElementById('historyModal').classList.remove('flex');
 });
-
 document.getElementById('historyModalBg').addEventListener('click', () => {
   document.getElementById('historyModal').classList.add('hidden');
   document.getElementById('historyModal').classList.remove('flex');
 });
-
     // ===== Firebase (por sesión) =====
     let isFirebaseReady = false;
-
     function updateConnectionStatus(connected){
       connectionStatus.className = 'w-3 h-3 rounded-full ' + (connected ? 'bg-green-400 animate-pulse' : 'bg-red-400');
     }
-
     function saveReservations(){
       const path = `reservations/${SESSION.nextSessionDate}`;
       if(!isFirebaseReady){
@@ -733,11 +741,9 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
         showNotification('Error al guardar - Modo local', 'error');
       }
     }
-
     function loadReservations(){
       const nextPath = `reservations/${SESSION.nextSessionDate}`;
       const prevPath = `reservations/${SESSION.prevSessionDate}`;
-
       if(!isFirebaseReady){
         const backup = JSON.parse(localStorage.getItem(`backup_${SESSION.nextSessionDate}`) || '{}');
         reservations = backup.data || {};
@@ -750,7 +756,6 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
       try{
         const nextRef = window.firebaseRef(window.firebaseDB, nextPath);
         const prevRef = window.firebaseRef(window.firebaseDB, prevPath);
-
         window.firebaseOnValue(nextRef, (snapshot)=>{
           const data = snapshot.val();
           reservations = (data && data.data) ? data.data : {};
@@ -765,7 +770,6 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
           blocked = backup.blocked || {};
           updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
         });
-
         window.firebaseOnValue(prevRef, (snapshot)=>{
           const data = snapshot.val();
           prevReservations = (data && data.data) ? data.data : {};
@@ -781,12 +785,10 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       }
     }
-
     // ===== Reglas de asiento (las de tu versión + “no repetir” consecutivo) =====
     function canSitInChair(table, chairNum, team, personName) {
       const chairNumInt = parseInt(chairNum);
       let adjacentChairs = [];
-
       if (table === '1') {
         if (chairNumInt >= 1 && chairNumInt <= 4) { if (chairNumInt > 1) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 4) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
         else if (chairNumInt >= 5 && chairNumInt <= 8) { if (chairNumInt > 5) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 8) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
@@ -797,19 +799,16 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
         if (chairNumInt >= 17 && chairNumInt <= 20) { if (chairNumInt > 17) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 20) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
         else if (chairNumInt >= 21 && chairNumInt <= 24) { if (chairNumInt > 21) adjacentChairs.push(`${table}-${chairNumInt - 1}`); if (chairNumInt < 24) adjacentChairs.push(`${table}-${chairNumInt + 1}`); }
       }
-
       // Consultoría no puede estar al lado (excepto Jose)
       if (team === 'consultoria' && personName !== 'Jose') {
         for (let adjacentChairId of adjacentChairs) {
           if (reservations[adjacentChairId] && reservations[adjacentChairId].team === 'consultoria') return false;
         }
       }
-
       // ACCO máximo 2 consecutivas
       if (team === 'acco') return !wouldCreateThreeConsecutiveACCO(table, chairNumInt);
       return true;
     }
-
     function wouldCreateThreeConsecutiveACCO(table, chairNum) {
       let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
       let tempReservations = { ...reservations };
@@ -820,7 +819,6 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
       if (hasThreeConsecutiveACCO(table, rightSide, tempReservations)) return true;
       return false;
     }
-
     function hasThreeConsecutiveACCO(table, sideChairs, tempReservations) {
       for (let i = 0; i <= sideChairs.length - 3; i++) {
         let consecutiveACCO = 0;
@@ -832,19 +830,15 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
       }
       return false;
     }
-
     function canMaintainMixedTeams(table, team) {
       let accoCount = 0, consultoriaCount = 0, totalInTable = 0;
       let chairRange = table === '1' ? [1,2,3,4,5,6,7,8] : table === '2' ? [9,10,11,12,13,14,15,16] : [17,18,19,20,21,22,23,24];
-
       chairRange.forEach(chairNum => {
         const chairId = `${table}-${chairNum}`;
         if (reservations[chairId]) { totalInTable++; reservations[chairId].team === 'acco' ? accoCount++ : consultoriaCount++; }
       });
-
       if (totalInTable === 0) return true;
       if (team === 'consultoria' && consultoriaCount >= 3) return false;
-
       if (team === 'acco') {
         let mesasCon5ACCO = 0;
         for (let t = 1; t <= 3; t++) {
@@ -857,7 +851,6 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
         if (mesasCon5ACCO === 0 && accoCount >= 5) return false;
         if (accoCount >= 5) return false;
       }
-
       if (totalInTable === 7) {
         if (team === 'acco' && consultoriaCount === 0) return false;
         if (team === 'consultoria' && accoCount === 0) return false;
@@ -865,7 +858,6 @@ document.getElementById('historyModalBg').addEventListener('click', () => {
       }
       return true;
     }
-
 function canPersonSitAtTable(name, table) {
   const restrictedPeople = ['Alan', 'Jose', 'Laura'];
   if (!restrictedPeople.includes(name)) return true;
@@ -875,60 +867,50 @@ function canPersonSitAtTable(name, table) {
   }
   return true;
 }
-
 // 🔁 Rotación obligatoria 1→2→3 para Alan, Jose y Laura entre sesiones consecutivas
 function checkRotationForVIP(name, targetTable){
   const vip = ['Alan','Jose','Laura'];
   if (!vip.includes(name)) return { allowed: true };
-
   // Verificamos si prevReservations está cargada
   if (Object.keys(prevReservations).length === 0) {
     console.error("prevReservations no está cargada aún.");
     return { allowed: true }; // Si no está cargada, permitimos la reserva
   }
-
   // Buscar la mesa de la sesión anterior para esta persona
   const prevEntry = Object.entries(prevReservations).find(([, r]) => r.name === name);
   if (!prevEntry) return { allowed: true }; // Si no tiene historial, no forzamos inicio
-
   const prevTable = parseInt(prevEntry[1].table, 10); // '1'|'2'|'3' → 1|2|3
-  const expected = ((prevTable + 1) % 3) + 1;           // 1→2, 2→3, 3→1
+  const expected = ((prevTable + 1) % 3) + 1; // 1→2, 2→3, 3→1
   const ok = (parseInt(targetTable, 10) === expected);
-
   return { allowed: ok, expected };
 }
-
 // Nombres de los líderes y analistas
 const leaders = ['Laura', 'Alan', 'Jose'];
-const accoAnalysts = teamMembers.acco.filter(name => !leaders.includes(name));    
+const accoAnalysts = teamMembers.acco.filter(name => !leaders.includes(name));
 const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'];
-
     // Click en sillas
     chairs.forEach(chair => {
       chair.addEventListener('click', () => {
         if (!currentUser) { openLoginModal(); return; }
         if (!SESSION.canReserve) { showNotification('Las reservas se abren los LUNES y MIÉRCOLES', 'error'); return; }
-
         const table = chair.dataset.table;
         const chairNum = chair.dataset.chair;
         const chairId = `${table}-${chairNum}`;
         // Validar si el miembro es un analista y si se está sentando con un líder
         // REGLA: ACCO no puede repetir líder dos días seguidos
                 // REGLA: ACCO no puede estar en la misma MESA que el mismo líder dos días seguidos
-        if (selectedTeam === 'acco' && !leaders.includes(selectedName)) {
+        if (rulesEnabled && selectedTeam === 'acco' && !leaders.includes(selectedName)) {
           const targetTable = chair.dataset.table;
-
           // Revisar si hay un líder en esta mesa
           for (let id in reservations) {
             const r = reservations[id];
             if (r.table === targetTable && leaders.includes(r.name)) {
               const leaderName = r.name;
-
               // Ver si el analista estuvo con este líder en la sesión anterior
               const prevAnalystRes = Object.values(prevReservations).find(p => p.name === selectedName);
               if (prevAnalystRes) {
                 const prevTable = prevAnalystRes.table;
-                const wasWithLeader = Object.values(prevReservations).some(p => 
+                const wasWithLeader = Object.values(prevReservations).some(p =>
                   p.table === prevTable && p.name === leaderName
                 );
                 if (wasWithLeader) {
@@ -952,7 +934,6 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
           }
           return;
         }
-
         // Bloqueada
         if (blocked[chairId]) {
           if (currentUser === 'admin') {
@@ -966,7 +947,6 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
           }
           return;
         }
-
         // Modo bloqueo para admin (sin nombre seleccionado)
         if (!selectedName) {
           if (currentUser === 'admin') {
@@ -984,11 +964,10 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
             return;
           }
         }
-
         // Validaciones
         if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
-        if (!canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
-        if (!canMaintainMixedTeams(table, selectedTeam)) {
+        if (rulesEnabled && !canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
+        if (rulesEnabled && !canMaintainMixedTeams(table, selectedTeam)) {
           if (selectedTeam === 'consultoria') showNotification('Máximo 3 de Consultoría por mesa.', 'error');
           else {
             let mesasCon5ACCO = 0;
@@ -1001,26 +980,22 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
           }
           return;
         }
-        if (!canSitInChair(table, chairNum, selectedTeam, selectedName)) {
+        if (rulesEnabled && !canSitInChair(table, chairNum, selectedTeam, selectedName)) {
           showNotification(selectedTeam === 'consultoria' ? 'Consultoría no puede sentarse junto a otra persona del mismo equipo (excepto Jose).' : 'Máximo 2 ACCO consecutivas.', 'error');
           return;
         }
-
         // No repetir asiento consecutivo
         const prevSeatId = Object.entries(prevReservations).find(([,r])=> r.name===selectedName)?.[0];
-        if (prevSeatId === chairId) {
+        if (rulesEnabled && prevSeatId === chairId) {
           showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
           return;
         }
-
         // Rotación 1→2→3 para Alan/Jose/Laura
 const rot = checkRotationForVIP(selectedName, table);
-if (!rot.allowed) {
+if (rulesEnabled && !rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
-
-
         // Hacer reserva
         reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
         saveReservations();
@@ -1028,15 +1003,13 @@ if (!rot.allowed) {
         updateChairDisplay(); updateReservationSummary(); updatePendingPeople(); updateNameOptions();
       });
     });
-
     // UI
     function updateChairDisplay(){
       chairs.forEach(chair=>{
         const table = chair.dataset.table;
         const num = chair.dataset.chair;
-        const id  = `${table}-${num}`;
+        const id = `${table}-${num}`;
         chair.classList.remove('blocked');
-
         if(blocked[id]){
           chair.classList.add('blocked');
         } else if(reservations[id]){
@@ -1056,12 +1029,10 @@ if (!rot.allowed) {
         }
       });
     }
-
     function updatePendingPeople(){
       const reservedNames = Object.values(reservations).map(r => r.name);
       const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n));
       const pendingConsultoria = teamMembers.consultoria.filter(n => !reservedNames.includes(n));
-
       let html = '';
       html += `
         <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
@@ -1075,14 +1046,12 @@ if (!rot.allowed) {
         </div>`;
       pendingPeople.innerHTML = html;
     }
-
     function updateReservationSummary(){
       const summary = {};
       Object.values(reservations).forEach(r => {
         if (!summary[r.table]) summary[r.table] = [];
         summary[r.table].push(r);
       });
-
       let html = '';
       for (let table = 1; table <= 3; table++) {
         const tableReservations = summary[table] || [];
@@ -1113,34 +1082,28 @@ if (!rot.allowed) {
       }
       reservationSummary.innerHTML = html;
     }
-
     function showNotification(message, type = 'success') {
   const n = document.createElement('div');
   n.className = `fixed right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 text-white font-medium text-sm max-w-xs break-words
                  ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-
   // Contenido
   n.innerHTML = `
     <div class="flex items-center gap-2">
-      ${type === 'success' ? '✅' : '⚠️'} 
+      ${type === 'success' ? '✅' : '⚠️'}
       <span>${message}</span>
     </div>
   `;
-
   // Posicionar dinámicamente según notificaciones existentes
   const existing = document.querySelectorAll('.notification-toast');
   const topOffset = 16 + (existing.length * 70); // 16px margen superior + 70px por notificación
   n.style.top = `${topOffset}px`;
   n.classList.add('notification-toast'); // para contarlas
-
   document.body.appendChild(n);
-
   // Animación de entrada
   requestAnimationFrame(() => {
     n.style.opacity = '1';
     n.style.transform = 'translateX(0)';
   });
-
   // Auto-eliminar después de 3 segundos
   setTimeout(() => {
     n.style.opacity = '0';
@@ -1167,7 +1130,6 @@ function loadTeamMembers() {
     showNotification('Equipos cargados', 'success');
   });
 }
-
 // Guardar equipos en Firebase
 function saveTeamMembers() {
   const teamsRef = window.firebaseRef(window.firebaseDB, 'teams');
@@ -1179,7 +1141,6 @@ function saveTeamMembers() {
     showNotification('Error al guardar equipos', 'error');
   });
 }
-
     // Cargar vacaciones
 function loadVacations() {
   const vacRef = window.firebaseRef(window.firebaseDB, 'vacations');
@@ -1189,26 +1150,31 @@ function loadVacations() {
     updateNameOptions();
   });
 }
-
 // Guardar vacaciones
 function saveVacations() {
   const vacRef = window.firebaseRef(window.firebaseDB, 'vacations');
   window.firebaseSet(vacRef, vacations);
 }
-
+// === MOSTRAR/OCULTAR PANEL DE REGLAS (solo admin) ===
+    function updateRulesPanelVisibility() {
+      const panel = document.getElementById('rulesPanel');
+      if (currentUser === 'admin') {
+        panel.classList.remove('hidden');
+        updateRulesSwitchUI();
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
 // Mostrar banner + controles admin
 function updateVacationsUI() {
   const banner = document.getElementById('vacationsBanner');
   const list = document.getElementById('vacationsList');
   const accoCtrl = document.getElementById('vacationAccoControls');
   const consCtrl = document.getElementById('vacationConsultoriaControls');
-
   list.innerHTML = '';
   accoCtrl.innerHTML = '';
   consCtrl.innerHTML = '';
-
   let hasAny = false;
-
   ['acco', 'consultoria'].forEach(team => {
     (teamMembers[team] || []).forEach(name => {
       const checked = !!vacations[name];
@@ -1216,7 +1182,6 @@ function updateVacationsUI() {
         hasAny = true;
         list.innerHTML += `<span class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">${name} <span class="text-lg">Palmera</span></span>`;
       }
-
       if (currentUser === 'admin') {
         const ctrl = team === 'acco' ? accoCtrl : consCtrl;
         ctrl.innerHTML += `
@@ -1227,7 +1192,6 @@ function updateVacationsUI() {
       }
     });
   });
-
   // Eventos de checkbox
   document.querySelectorAll('#vacationAccoControls input, #vacationConsultoriaControls input').forEach(cb => {
     cb.onchange = () => {
@@ -1251,7 +1215,6 @@ function updateVacationsUI() {
       updateVacationsUI();
     };
   });
-
   banner.classList.toggle('hidden', !hasAny);
 }
     // Puente: se llama cuando el SDK modular avisa que está listo
@@ -1263,7 +1226,6 @@ function updateVacationsUI() {
       updateNameOptions();
       showNotification('🔥 Conectado a base de datos en tiempo real', 'success');
     };
-
 // Eventos para agregar miembros
 document.getElementById('addAccoMember').addEventListener('click', () => {
   if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
@@ -1272,12 +1234,10 @@ document.getElementById('addAccoMember').addEventListener('click', () => {
   if (!name) return showNotification('Escribe un nombre', 'error');
   if (teamMembers.acco.includes(name)) return showNotification('Ya existe en ACCO', 'error');
   if (teamMembers.consultoria.includes(name)) return showNotification('Ya existe en Consultoría', 'error');
-
   teamMembers.acco.push(name);
   input.value = '';
   saveTeamMembers();
 });
-
 document.getElementById('addConsultoriaMember').addEventListener('click', () => {
   if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
   const input = document.getElementById('newConsultoriaMember');
@@ -1285,29 +1245,71 @@ document.getElementById('addConsultoriaMember').addEventListener('click', () => 
   if (!name) return showNotification('Escribe un nombre', 'error');
   if (teamMembers.consultoria.includes(name)) return showNotification('Ya existe en Consultoría', 'error');
   if (teamMembers.acco.includes(name)) return showNotification('Ya existe en ACCO', 'error');
-
   teamMembers.consultoria.push(name);
   input.value = '';
   saveTeamMembers();
 });
+// =============================================
+// PANEL DE REGLAS + SWITCH (solo una vez!)
+// =============================================
+function updateRulesSwitchUI() {
+  const switchEl = document.getElementById('rulesMasterSwitch');
+  const statusText = document.getElementById('rulesStatusText');
+  const footerText = document.getElementById('rulesFooterText');
+
+  if (!switchEl || !statusText || !footerText) return;
+
+  switchEl.checked = rulesEnabled;
+  if (rulesEnabled) {
+    statusText.textContent = "ACTIVADAS";
+    statusText.className = "text-lg font-bold text-green-600";
+    footerText.textContent = "Todas las reglas están siendo aplicadas automáticamente";
+  } else {
+    statusText.textContent = "DESACTIVADAS";
+    statusText.className = "text-lg font-bold text-red-600";
+    footerText.textContent = "¡MODO LIBRE! Las reglas están pausadas por el Admin";
+  }
+}
+
+function updateRulesPanelVisibility() {
+  const panel = document.getElementById('rulesPanel');
+  if (currentUser === 'admin') {
+    panel.classList.remove('hidden');
+    updateRulesSwitchUI(); // ← actualiza el switch al mostrarlo
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+// Evento del switch (solo una vez en toda la vida del script)
+document.getElementById('rulesMasterSwitch')?.addEventListener('change', function () {
+  if (currentUser !== 'admin') {
+    this.checked = rulesEnabled;
+    showNotification('Solo el Admin puede pausar las reglas', 'error');
+    return;
+  }
+  rulesEnabled = this.checked;
+  updateRulesSwitchUI();
+  showNotification(
+    rulesEnabled ? 'Reglas REACTIVADAS' : 'Reglas PAUSADAS (modo libre)',
+    rulesEnabled ? 'success' : 'error'
+  );
+});
+
     
 // === INICIO: Solo Firebase, sin datos locales ===
 renderSessionBanner();
-
 // Mostrar estado de conexión
 updateConnectionStatus(false);
-
 // Mostrar mensaje de carga
 showNotification('Conectando a la base de datos...', 'success');
-
 // Forzar login (incluso si hay autologin, para asegurar que se cargue todo)
-if (!tryAutoLogin()) {
+updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
+    if (!tryAutoLogin()) {
   openLoginModal();
 }
 // === FIN ===
   </script>
-  
+ 
 </body>
 </html>
-
-
