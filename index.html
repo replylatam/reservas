@@ -271,61 +271,76 @@
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
         <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
       </div>
-     <!-- PANEL DE REGLAS + REGLAS DINÁMICAS -->
-<div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
-  <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-    <div>
-      <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
-        <span class="text-4xl">Reglas</span> Reglas del Sistema
-      </h3>
-      <p class="text-sm text-purple-600 mt-1">Solo visibles y editables por Admin</p>
-    </div>
-    <div class="flex items-center gap-4 bg-white/80 backdrop-blur rounded-xl px-6 py-4 shadow-lg border border-purple-300">
-      <div class="text-right">
-        <div class="text-sm font-semibold text-gray-700">Reglas del sistema</div>
-        <div id="rulesStatusText" class="text-lg font-bold text-green-600">ACTIVADAS</div>
+      <!-- PANEL DE REGLAS ACTIVAS + SWITCH ADMIN -->
+      <div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
+        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div>
+            <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
+              <span class="text-4xl">Reglas</span> Reglas Activas del Sistema
+            </h3>
+            <p class="text-sm text-purple-600 mt-1">Solo visibles para Admin</p>
+          </div>
+          <!-- SWITCH PARA PAUSAR REGLAS -->
+          <div class="flex items-center gap-4 bg-white/80 backdrop-blur rounded-xl px-6 py-4 shadow-lg border border-purple-300">
+            <div class="text-right">
+              <div class="text-sm font-semibold text-gray-700">Reglas del sistema</div>
+              <div id="rulesStatusText" class="text-lg font-bold text-green-600">ACTIVADAS</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
+              <div class="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+          <!-- Tus reglas aquí (mismo contenido que antes) -->
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600">
+            <div class="font-bold text-purple-700 mb-2">Líderes no repiten mesa</div>
+            <p class="text-gray-700">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-indigo-600">
+            <div class="font-bold text-indigo-700 mb-2">Rotación VIP obligatoria</div>
+            <p class="text-gray-700">Alan, Jose y Laura rotan: Mesa 1 → 2 → 3 → 1...</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-red-600">
+            <div class="font-bold text-red-700 mb-2">Máx. 2 ACCO consecutivos por lado</div>
+            <p class="text-gray-700">No se permiten 3+ seguidos del mismo equipo en un lado de mesa.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-green-600">
+            <div class="font-bold text-green-700 mb-2">Consultoría no se sienta junta</div>
+            <p class="text-gray-700">Ningún miembro de Consultoría puede estar al lado de otro (excepto Jose).</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-orange-600">
+            <div class="font-bold text-orange-700 mb-2">Límite ACCO por sesión</div>
+            <p class="text-gray-700">Máximo 5 ACCO en total o solo 1 mesa con 5+ ACCO.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-pink-600">
+            <div class="font-bold text-pink-700 mb-2">Mezcla obligatoria al llenar</div>
+            <p class="text-gray-700">Una mesa con 8 personas debe tener al menos 1 de cada equipo.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-teal-600">
+            <div class="font-bold text-teal-700 mb-2">No repetir asiento</div>
+            <p class="text-gray-700">Nadie puede ocupar la misma silla dos sesiones consecutivas.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-yellow-600">
+            <div class="font-bold text-yellow-800 mb-2">Analistas no repiten líder</div>
+            <p class="text-gray-700">Un analista no puede estar dos veces seguidas con el mismo líder.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-gray-600">
+            <div class="font-bold text-gray-700 mb-2">Bloqueo manual</div>
+            <p class="text-gray-700">Admin puede bloquear/desbloquear sillas vacías con clic sin nombre.</p>
+          </div>
+          <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-cyan-600">
+            <div class="font-bold text-cyan-700 mb-2">Vacaciones automáticas</div>
+            <p class="text-gray-700">Se cancelan reservas y se ocultan del selector automáticamente.</p>
+          </div>
+        </div>
+        <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
+          <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
+        </div>
       </div>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
-        <div class="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg- white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
-      </label>
-    </div>
-  </div>
-
-  <!-- Reglas fijas (las de siempre) -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
-    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600">
-      <div class="font-bold text-purple-700 mb-2">Líderes no repiten mesa</div>
-      <p class="text-gray-700">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
-    </div>
-    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-indigo-600">
-      <div class="font-bold text-indigo-700 mb-2">Rotación VIP obligatoria</div>
-      <p class="text-gray-700">Alan, Jose y Laura rotan: Mesa 1 → 2 → 3 → 1...</p>
-    </div>
-    <!-- ... (el resto de reglas fijas que ya tenías) ... -->
-    <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-gray-600">
-      <div class="font-bold text-gray-700 mb-2">Bloqueo manual</div>
-      <p class="text-gray-700">Admin puede bloquear/desbloquear sillas vacías con clic sin nombre.</p>
-    </div>
-  </div>
-
-  <!-- REGLAS PERSONALIZADAS DINÁMICAS -->
-  <div class="bg-white/90 backdrop-blur rounded-xl p-6 shadow-lg border border-purple-300">
-    <div class="flex justify-between items-center mb-4">
-      <h4 class="text-lg font-bold text-purple-800">Reglas Personalizadas (Admin)</h4>
-      <button id="addCustomRuleBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-        + Nueva Regla
-      </button>
-    </div>
-    <div id="customRulesList" class="space-y-3">
-      <!-- Las reglas dinámicas se cargan aquí -->
-    </div>
-  </div>
-
-  <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
-    <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
-  </div>
-</div>
+   
+      <!-- FIN PANEL DE REGLAS -->
     </main>
   </div>
   <!-- MODAL HISTÓRICO -->
@@ -981,10 +996,6 @@ if (rulesEnabled && !rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
-        // ← REGLAS PERSONALIZADAS (lo que faltaba)
-        if (rulesEnabled && !checkCustomRules(selectedName, table, chairNum)) {
-          return;
-        }
         // Hacer reserva
         reservations[chairId] = { name: selectedName, team: selectedTeam, table, chair: chairNum };
         saveReservations();
@@ -1315,135 +1326,7 @@ document.getElementById('rulesMasterSwitch')?.addEventListener('change', functio
     rulesEnabled ? 'success' : 'error'
   );
 });
-    // ==================== REGLAS PERSONALIZADAS DINÁMICAS ====================
-    let customRules = [];
 
-    function loadCustomRules() {
-      const rulesRef = window.firebaseRef(window.firebaseDB, 'customRules');
-      window.firebaseOnValue(rulesRef, (snapshot) => {
-        customRules = snapshot.val() ? Object.values(snapshot.val()) : [];
-        renderCustomRules();
-      });
-    }
-
-    function saveCustomRules() {
-      const rulesRef = window.firebaseRef(window.firebaseDB, 'customRules');
-      const obj = {};
-      customRules.forEach((r, i) => obj[i] = r);
-      window.firebaseSet(rulesRef, obj);
-    }
-
-    function renderCustomRules() {
-      const list = document.getElementById('customRulesList');
-      if (!list) return;
-      if (customRules.length === 0) {
-        list.innerHTML = '<p class="text-gray-500 italic">No hay reglas personalizadas aún.</p>';
-        return;
-      }
-      list.innerHTML = customRules.map((rule, idx) => `
-        <div class="flex items-center justify-between bg-purple-50 px-4 py-3 rounded-lg border border-purple-200">
-          <div class="text-sm">
-            <span class="font-medium">${rule.description}</span>
-            <span class="text-purple-600 text-xs ml-2">(${rule.type})</span>
-          </div>
-          <button onclick="deleteCustomRule(${idx})" class="text-red-600 hover:text-red-800 text-xl">×</button>
-        </div>
-      `).join('');
-    }
-
-    window.deleteCustomRule = function(idx) {
-      if (!confirm('¿Eliminar esta regla personalizada?')) return;
-      customRules.splice(idx, 1);
-      saveCustomRules();
-      showNotification('Regla eliminada', 'success');
-    };
-
-    document.getElementById('addCustomRuleBtn')?.addEventListener('click', () => {
-      if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
-
-      const desc = prompt(`Describe la nueva regla (ej: "Celeste no puede sentarse con Matías")`);
-      if (!desc) return;
-
-      const type = prompt(`Tipo de regla:\n1. misma-mesa\n2. al-lado\n3. nunca-mesa\n4. nunca-lado\nEscribe el número:`, "1");
-      let ruleType = "misma-mesa";
-      if (type === "2") ruleType = "al-lado";
-      if (type === "3") ruleType = "nunca-mesa";
-      if (type === "4") ruleType = "nunca-lado";
-
-      let person1 = "", person2 = "", extra = "";
-      if (["misma-mesa", "al-lado"].includes(ruleType)) {
-        person1 = prompt("Primera persona:");
-        person2 = prompt("Segunda persona:");
-      } else {
-        person1 = prompt("Persona afectada:");
-        if (ruleType === "nunca-mesa") extra = prompt("Mesa prohibida (1, 2 o 3):");
-        if (ruleType === "nunca-lado") extra = prompt("Lado prohibido (izquierda/derecha):");
-      }
-
-      const newRule = {
-        description: desc.trim(),
-        type: ruleType,
-        person1: person1.trim(),
-        person2: person2?.trim() || null,
-        extra: extra?.trim() || null
-      };
-
-      customRules.push(newRule);
-      saveCustomRules();
-      showNotification('Regla personalizada agregada', 'success');
-    });
-
-    function checkCustomRules(personName, table, chairNum) {
-      if (!rulesEnabled) return true;
-
-      for (const rule of customRules) {
-        if (rule.type === "misma-mesa" && rule.person1 === personName) {
-          const other = rule.person2;
-          if (Object.values(reservations).some(r => r.name === other && r.table === table)) {
-            showNotification(rule.description, 'error');
-            return false;
-          }
-        }
-        if (rule.type === "al-lado" && rule.person1 === personName) {
-          const other = rule.person2;
-          const adjacent = getAdjacentChairs(table, chairNum);
-          for (const adjId of adjacent) {
-            if (reservations[adjId]?.name === other) {
-              showNotification(rule.description, 'error');
-              return false;
-            }
-          }
-        }
-        if (rule.type === "nunca-mesa" && rule.person1 === personName && rule.extra === table) {
-          showNotification(rule.description, 'error');
-          return false;
-        }
-        if (rule.type === "nunca-lado" && rule.person1 === personName) {
-          const isLeft = chairNum <= (table == 1 ? 4 : table == 2 ? 12 : 20);
-          const forbiddenSide = rule.extra.toLowerCase();
-          if ((forbiddenSide === "izquierda" && isLeft) || (forbiddenSide === "derecha" && !isLeft)) {
-            showNotification(rule.description, 'error');
-            return false;
-          }
-        }
-      }
-      return true;
-    }
-
-    function getAdjacentChairs(table, chairNum) {
-      const adj = [];
-      const num = parseInt(chairNum);
-      if ([1,2,3,4,9,10,11,12,17,18,19,20].includes(num)) {
-        if (num > (table==1?1:table==2?9:17)) adj.push(`${table}-${num-1}`);
-        if (num < (table==1?4:table==2?12:20)) adj.push(`${table}-${num+1}`);
-      } else {
-        if (num > (table==1?5:table==2?13:21)) adj.push(`${table}-${num-1}`);
-        if (num < (table==1?8:table==2?16:24)) adj.push(`${table}-${num+1}`);
-      }
-      return adj;
-    }
-
-    loadCustomRules(); // ← Esto carga las reglas al iniciar
     
 // === INICIO: Solo Firebase, sin datos locales ===
 renderSessionBanner();
@@ -1456,13 +1339,10 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
     if (!tryAutoLogin()) {
   openLoginModal();
 }
-
 // === FIN ===
   </script>
  
 </body>
 </html>
-
-
 
 
