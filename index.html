@@ -1165,6 +1165,37 @@ function saveVacations() {
         panel.classList.add('hidden');
       }
     }
+// ===========================================================================
+// BONUS: PERSISTIR ESTADO DEL SWITCH EN FIREBASE (para todos los admin)
+// ===========================================================================
+window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'system/rulesEnabled'), (snap) => {
+  const val = snap.val();
+  // Si nunca se guardó, vale null → lo tratamos como true (reglas activas por defecto)
+  rulesEnabled = val !== false;
+  updateRulesSwitchUI();
+  updateRulesPanelVisibility(); // actualiza visibilidad + UI del switch
+});
+
+// Cuando el admin cambia el switch → guardar en Firebase
+document.getElementById('rulesMasterSwitch')?.addEventListener('change', function() {
+  if (currentUser !== 'admin') {
+    this.checked = rulesEnabled; // vuelve al estado anterior
+    showNotification('Solo el Admin puede pausar las reglas', 'error');
+    return;
+  }
+
+  rulesEnabled = this.checked;
+
+  // Guardar en Firebase para que todos los admin lo vean igual
+  window.firebaseSet(window.firebaseRef(window.firebaseDB, 'system/rulesEnabled'), rulesEnabled);
+
+  updateRulesSwitchUI();
+  showNotification(
+    rulesEnabled ? 'Reglas REACTIVADAS en todo el sistema' : 'Reglas PAUSADAS (modo libre total)',
+    rulesEnabled ? 'success' : 'error'
+  );
+});
+    
 // Mostrar banner + controles admin
 function updateVacationsUI() {
   const banner = document.getElementById('vacationsBanner');
@@ -1313,3 +1344,6 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
  
 </body>
 </html>
+
+
+
