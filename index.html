@@ -1343,139 +1343,104 @@ if (!tryAutoLogin()) {
   openLoginModal();
 }
 <script>
-// ===== REGLAS DINÁMICAS QUE SÍ IMPACTAN EN LAS RESERVAS =====
-let activeRules = []; // { id, text, type, people[], tables[], chairs[], timestamp }
+// ==================== REGLAS DINÁMICAS + FIX DEFINITIVO ====================
+let activeRules = [];
 
-// Cargar reglas desde Firebase
+// Cargar reglas
 function loadRules() {
   const rulesRef = window.firebaseRef(window.firebaseDB, 'dynamicRules');
   window.firebaseOnValue(rulesRef, (snapshot) => {
-    const data = snapshot.val();
-    activeRules = data ? Object.entries(data).map(([id, r]) => ({ id, ...r })) : [];
+    const data = snapshot.val() || {};
+    activeRules = Object.entries(data).map(([id, r]) => ({ id, ...r }));
     activeRules.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     updateRulesUI();
   });
 }
 
-// Guardar todas las reglas
 function saveRules() {
   const rulesRef = window.firebaseRef(window.firebaseDB, 'dynamicRules');
   const obj = {};
-  activeRules.forEach(r => { obj[r.id] = { text: r.text, type: r.type, people: r.people, tables: r.tables, chairs: r.chairs, timestamp: r.timestamp }; });
+  activeRules.forEach(r => obj[r.id] = {
+    text: r.text, type: r.type, people: r.people || [], tables: r.tables || [], chairs: r.chairs || [], timestamp: r.timestamp
+  });
   window.firebaseSet(rulesRef, obj);
 }
 
-// Aplicar reglas al intentar reservar
+// ← ESTA ES LA FUNCIÓN QUE FALTABA EN TU VERSIÓN ANTERIOR
 function checkRuleViolation(personName, targetTable, targetChair) {
   for (const rule of activeRules) {
-    // Regla tipo: "X no puede con Y en misma mesa"
-    if (rule.type === 'no-same-table' && rule.people.length === 2) {
+    if (rule.type === 'no-same-table' && rule.people?.length === 2) {
       const [p1, p2] = rule.people;
       if (personName === p1 || personName === p2) {
         const other = personName === p1 ? p2 : p1;
-        // ¿Ya está el otro reservado en esa mesa?
-        for (const [id, res] of Object.entries(reservations)) {
-          if (res.table === targetTable && res.name === other) {
-            return `Regla activa: ${p1} y ${p2} no pueden estar en la misma mesa`;
-          }
+        if (Object.values(reservations).some(r => r.table === targetTable && r.name === other)) {
+          return `Regla activa: ${p1} y ${p2} no pueden estar en la misma mesa`;
         }
       }
     }
-
-    // Regla tipo: "X no puede ir en mesa Y"
-    if (rule.type === 'no-table' && rule.people.includes(personName) && rule.tables.includes(targetTable)) {
+    if (rule.type === 'no-table' && rule.people?.includes(personName) && rule.tables?.includes(targetTable)) {
       return `Regla activa: ${personName} no puede ir en la Mesa ${targetTable}`;
     }
-
-    // Regla tipo: "X debe ir fijo en mesa Y"
-    if (rule.type === 'force-table' && rule.people.includes(personName) && targetTable !== rule.tables[0]) {
+    if (rule.type === 'force-table' && rule.people?.includes(personName) && rule.tables?.[0] != targetTable) {
       return `Regla activa: ${personName} debe ir obligatoriamente en la Mesa ${rule.tables[0]}`;
     }
-
-    // Regla tipo: "Silla bloqueada por regla"
-    if (rule.type === 'block-chairs' && rule.chairs.includes(targetChair)) {
-      return `Regla activa: la silla ${targetChair} está bloqueada esta semana`;
+    if (rule.type === 'block-chairs' && rule.chairs?.includes(targetChair)) {
+      return `Silla ${targetChair} bloqueada por regla activa`;
     }
   }
-  return null; // sin violación
+  return null;
 }
 
-// UI de reglas
 function updateRulesUI() {
   const adminList = document.getElementById('activeRulesList');
   const publicList = document.getElementById('publicRulesList');
-  const publicBanner = document.getElementById('publicRulesBanner');
+  const banner = document.getElementById('publicRulesBanner');
 
-  if (activeRules.length === 0) {
+  if (!activeRules.length) {
     adminList.innerHTML = '<p class="text-gray-500 italic">No hay reglas activas esta semana.</p>';
-    publicBanner.classList.add('hidden');
+    banner.classList.add('hidden');
     return;
   }
 
-  let adminHtml = '';
-  let publicHtml = '';
-
-  activeRules.forEach(rule => {
-    const date = new Date(rule.timestamp).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-
-    // Admin ve botón eliminar
-    adminHtml += `
-      <div class="flex justify-between items-start bg-purple-50 p-4 rounded-lg border border-purple-200">
-        <div>
-          <p class="font-medium text-purple-900">${rule.text}</p>
-          <p class="text-xs text-purple-600 mt-1">${date}</p>
-        </div>
-        <button onclick="deleteRule('${rule.id}')" class="text-red-600 hover:text-red-800 font-bold">×</button>
-      </div>`;
-
-    // Todos ven la regla
-    publicHtml += `
-      <div class="flex items-start gap-3 bg-purple-50 p-3 rounded-lg">
-        <span class="text-2xl">Regla</span>
-        <div>
-          <p class="font-medium text-purple-900">${rule.text}</p>
-          <p class="text-xs text-purple-600">${date}</p>
-        </div>
-      </div>`;
+  let adminHtml = '', publicHtml = '';
+  activeRules.forEach(r => {
+    const date = new Date(r.timestamp).toLocaleDateString('es-AR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+    adminHtml += `<div class="flex justify-between bg-purple-50 p-4 rounded-lg border border-purple-200">
+      <div><p class="font-medium text-purple-900">${r.text}</p><p class="text-xs text-purple-600">${date}</p></div>
+      <button onclick="deleteRule('${r.id}')" class="text-red-600 hover:text-red-800 font-bold text-xl">×</button>
+    </div>`;
+    publicHtml += `<div class="bg-purple-50 p-3 rounded-lg"><p class="font-medium text-purple-900">${r.text}</p><p class="text-xs text-purple-600">${date}</p></div>`;
   });
 
   adminList.innerHTML = adminHtml;
   publicList.innerHTML = publicHtml;
-  publicBanner.classList.remove('hidden');
+  banner.classList.remove('hidden');
 }
 
-// Eliminar regla
-window.deleteRule = function(id) {
+window.deleteRule = id => {
   if (!confirm('¿Eliminar esta regla?')) return;
   activeRules = activeRules.filter(r => r.id !== id);
   saveRules();
   showNotification('Regla eliminada', 'success');
 };
 
-// === NUEVO PANEL MEJORADO PARA AGREGAR REGLAS ===
-const rulesPanelHTML = `
-  <div class="bg-white rounded-lg shadow-lg p-6">
+// Panel completo (reemplaza el viejo)
+document.getElementById('adminRulesPanel').outerHTML = `
+  <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
     <h3 class="text-xl font-bold text-purple-800 mb-4">Reglas Activas Esta Semana (impactan reservas)</h3>
     <div id="activeRulesList" class="space-y-3 mb-6"></div>
 
     <details class="bg-purple-50 rounded-lg p-4">
       <summary class="font-bold text-purple-900 cursor-pointer">+ Agregar nueva regla</summary>
       <div class="mt-4 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Tipo de regla</label>
-          <select id="ruleType" class="w-full p-2 border rounded-lg mt-1">
-            <option value="no-same-table">X no puede con Y en misma mesa</option>
-            <option value="no-table">X no puede ir en mesa(s)</option>
-            <option value="force-table">X debe ir obligatoriamente en mesa</option>
-            <option value="block-chairs">Bloquear sillas específicas</option>
-          </select>
-        </div>
-
+        <select id="ruleType" class="w-full p-2 border rounded-lg">
+          <option value="no-same-table">X no puede con Y en misma mesa</option>
+          <option value="no-table">X no puede ir en mesa(s)</option>
+          <option value="force-table">X debe ir obligatoriamente en mesa</option>
+          <option value="block-chairs">Bloquear sillas específicas</option>
+        </select>
         <div id="ruleConfig"></div>
-
-        <button id="saveNewRuleBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium">
-          Guardar Regla
-        </button>
+        <button id="saveNewRuleBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium">Guardar Regla</button>
       </div>
     </details>
   </div>
@@ -1485,125 +1450,63 @@ const rulesPanelHTML = `
       <h4 class="text-xl font-bold text-purple-800 mb-4">Reglas Activas Esta Semana</h4>
       <div id="publicRulesList" class="space-y-3"></div>
     </div>
-  </div>
-`;
+  </div>`;
 
-// Insertar el nuevo panel (reemplaza el viejo)
-document.getElementById('adminRulesPanel').outerHTML = rulesPanelHTML;
-
-// Lógica del formulario dinámico
+// Formulario dinámico + guardar
 document.getElementById('ruleType')?.addEventListener('change', function() {
-  const config = document.getElementById('ruleConfig');
-  const type = this.value;
-
-  if (type === 'no-same-table') {
-    config.innerHTML = `
-      <div class="grid grid-cols-2 gap-3">
-        <input type="text" id="personA" placeholder="Nombre 1 (ej: Celeste)" class="p-2 border rounded">
-        <input type="text" id="personB" placeholder="Nombre 2 (ej: Santiago)" class="p-2 border rounded">
-      </div>`;
-  } else if (type === 'no-table' || type === 'force-table') {
-    config.innerHTML = `
-      <input type="text" id="personList" placeholder="Nombres separados por coma" class="w-full p-2 border rounded mb-2">
-      <div class="flex gap-2">
-        ${[1,2,3].map(n => `<label class="flex items-center"><input type="checkbox" value="${n}" class="ruleTable"> Mesa ${n}</label>`).join('')}
-      </div>`;
-  } else if (type === 'block-chairs') {
-    config.innerHTML = `
-      <p class="text-sm text-gray-600 mb-2">Seleccioná las sillas a bloquear:</p>
-      <div class="grid grid-cols-6 gap-2 text-xs">
-        ${Array.from({length: 24}, (_,i) => i+1).map(n => `<label class="flex items-center"><input type="checkbox" value="${n}" class="ruleChair"> ${n}</label>`).join('')}
-      </div>`;
-  }
+  const cfg = document.getElementById('ruleConfig');
+  const t = this.value;
+  if (t === 'no-same-table') cfg.innerHTML = `<div class="grid grid-cols-2 gap-3"><input id="pA" placeholder="Nombre 1" class="p-2 border rounded"><input id="pB" placeholder="Nombre 2" class="p-2 border rounded"></div>`;
+  else if (t === 'no-table' || t === 'force-table') cfg.innerHTML = `<input id="personList" placeholder="Nombres (separados por coma)" class="w-full p-2 border rounded mb-2">
+    <div class="flex gap-3">${[1,2,3].map(n=>`<label><input type="checkbox" class="ruleTable" value="${n}"> Mesa ${n}</label>`).join('')}</div>`;
+  else if (t === 'block-chairs') cfg.innerHTML = `<p class="text-sm text-gray-600 mb-2">Seleccioná sillas:</p><div class="grid grid-cols-8 gap-1 text-xs">
+    ${Array.from({length:24},(_,i)=>i+1).map(n=>`<label><input type="checkbox" class="ruleChair" value="${n}">${n}</label>`).join('')}</div>`;
+  else cfg.innerHTML = '';
 });
 
-// Guardar nueva regla
 document.getElementById('saveNewRuleBtn')?.addEventListener('click', () => {
   if (currentUser !== 'admin') return showNotification('Solo admin', 'error');
-
   const type = document.getElementById('ruleType').value;
-  let text = '';
-  let people = [];
-  let tables = [];
-  let chairs = [];
+  let text = '', people = [], tables = [], chairs = [];
 
   if (type === 'no-same-table') {
-    const a = document.getElementById('personA')?.value.trim();
-    const b = document.getElementById('personB')?.value.trim();
+    const a = document.getElementById('pA')?.value.trim();
+    const b = document.getElementById('pB')?.value.trim();
     if (!a || !b) return showNotification('Faltan nombres', 'error');
-    text = `${a} y ${b} no pueden estar en la misma mesa`;
-    people = [a, b];
-  } else if (type === 'no-table') {
-    const names = document.getElementById('personList')?.value.split(',').map(s => s.trim()).filter(Boolean);
-    tables = Array.from(document.querySelectorAll('.ruleTable:checked')).map(cb => cb.value);
-    if (names.length === 0 || tables.length === 0) return showNotification('Completa los datos', 'error');
-    text = `${names.join(', ')} no puede/n ir en la${tables.length>1?'s':''} mesa${tables.length>1?'s':''} ${tables.join(', ')}`;
-    people = names;
-  } else if (type === 'force-table') {
-    const names = document.getElementById('personList')?.value.split(',').map(s => s.trim()).filter(Boolean);
+    text = `${a} y ${b} no pueden estar en la misma mesa`; people = [a,b];
+  }
+  else if (type === 'no-table') {
+    people = document.getElementById('personList')?.value.split(',').map(s=>s.trim()).filter(Boolean);
+    tables = [...document.querySelectorAll('.ruleTable:checked')].map(c=>c.value);
+    if (!people.length || !tables.length) return showNotification('Completa todo', 'error');
+    text = `${people.join(', ')} no puede/n ir en la${tables.length>1?'s':''} mesa${tables.length>1?'s':''} ${tables.join(', ')}`;
+  }
+  else if (type === 'force-table') {
+    people = document.getElementById('personList')?.value.split(',').map(s=>s.trim()).filter(Boolean);
     const table = document.querySelector('.ruleTable:checked')?.value;
-    if (!table || names.length === 0) return showNotification('Completa los datos', 'error');
-    text = `${names.join(', ')} debe/n ir obligatoriamente en la Mesa ${table}`;
-    people = names;
-    tables = [table];
-  } else if (type === 'block-chairs') {
-    chairs = Array.from(document.querySelectorAll('.ruleChair:checked')).map(cb => cb.value);
-    if (chairs.length === 0) return showNotification('Seleccioná al menos una silla', 'error');
+    if (!people.length || !table) return showNotification('Completa todo', 'error');
+    text = `${people.join(', ')} debe/n ir en la Mesa ${table}`; tables = [table];
+  }
+  else if (type === 'block-chairs') {
+    chairs = [...document.querySelectorAll('.ruleChair:checked')].map(c=>c.value);
+    if (!chairs.length) return showNotification('Seleccioná al menos una silla', 'error');
     text = `Sillas bloqueadas: ${chairs.join(', ')}`;
   }
 
-  activeRules.unshift({
-    id: Date.now().toString(),
-    text,
-    type,
-    people,
-    tables,
-    chairs,
-    timestamp: Date.now()
-  });
-
+  activeRules.unshift({ id: Date.now().toString(), text, type, people, tables, chairs, timestamp: Date.now() });
   saveRules();
   document.getElementById('ruleType').value = 'no-same-table';
   document.getElementById('ruleConfig').innerHTML = '';
-  showNotification('Regla creada y aplicada', 'success');
+  showNotification('Regla creada y activa', 'success');
 });
 
-// Cargar reglas al iniciar
-window.initFirebaseBridge = (function(original) {
-  return function() {
-    if (original) original();
-    loadRules();
-  };
-})(window.initFirebaseBridge);
-</script>
-
+// Cargar reglas sin romper el init original
+const originalInit = window.initFirebaseBridge || (() => {});
+window.initFirebaseBridge = function() {
+  originalInit();
+  loadRules();
+};
   </script>
   
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
