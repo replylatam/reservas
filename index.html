@@ -290,16 +290,31 @@
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Resumen de Reservas</h3>
         <div id="reservationSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
       </div>
-
-      <!-- ← AQUÍ VA EL PANEL DE REGLAS (SOLO ADMIN) → -->
+      <!-- PANEL DE REGLAS ACTIVAS + SWITCH ADMIN -->
       <div id="rulesPanel" class="mt-12 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl shadow-xl p-8 border-2 border-purple-200 hidden">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
-            <span class="text-4xl">Reglas</span> Reglas Activas del Sistema
-          </h3>
-          <div class="text-3xl animate-pulse">Active</div>
+        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div>
+            <h3 class="text-2xl font-bold text-purple-800 flex items-center gap-3">
+              <span class="text-4xl">Reglas</span> Reglas Activas del Sistema
+            </h3>
+            <p class="text-sm text-purple-600 mt-1">Solo visibles para Admin</p>
+          </div>
+
+          <!-- SWITCH PARA PAUSAR REGLAS -->
+          <div class="flex items-center gap-4 bg-white/80 backdrop-blur rounded-xl px-6 py-4 shadow-lg border border-purple-300">
+            <div class="text-right">
+              <div class="text-sm font-semibold text-gray-700">Reglas del sistema</div>
+              <div id="rulesStatusText" class="text-lg font-bold text-green-600">ACTIVADAS</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="rulesMasterSwitch" checked class="sr-only peer">
+              <div class="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
         </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+          <!-- Tus reglas aquí (mismo contenido que antes) -->
           <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-md border-l-4 border-purple-600">
             <div class="font-bold text-purple-700 mb-2">Líderes no repiten mesa</div>
             <p class="text-gray-700">Alan, Jose y Laura deben estar en mesas distintas entre sí.</p>
@@ -341,10 +356,12 @@
             <p class="text-gray-700">Se cancelan reservas y se ocultan del selector automáticamente.</p>
           </div>
         </div>
+
         <div class="mt-8 text-center text-xs text-purple-600 italic font-medium">
-          Estas reglas se aplican automáticamente al intentar reservar
+          <span id="rulesFooterText">Todas las reglas están siendo aplicadas automáticamente</span>
         </div>
       </div>
+    
       <!-- FIN PANEL DE REGLAS -->
     </main>
   </div>
@@ -471,7 +488,10 @@ let teamMembers = {
 };
 
 let vacations = {}; // { "Laura": true, "Jose": true }
-
+    
+// === CONTROL GLOBAL DE REGLAS (Admin) ===
+let rulesEnabled = true; // por defecto activas
+    
 // Valores por defecto (solo si no hay datos en Firebase)
 const defaultTeamMembers = {
   acco: ['Laura', 'Alan', 'Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayelen', 'Esteban', 'Sofia', 'Julian', 'Kymey', 'Nicolas'],
@@ -596,6 +616,38 @@ function setSession(user) {
   updateNameOptions(); // ← ahora no falla
   updatePermissionsUI();
   updateRulesPanelVisibility();
+
+      // === ACTUALIZAR ESTADO DEL SWITCH Y TEXTO ===
+    function updateRulesSwitchUI() {
+      const switchEl = document.getElementById('rulesMasterSwitch');
+      const statusText = document.getElementById('rulesStatusText');
+      const footerText = document.getElementById('rulesFooterText');
+
+      if (!switchEl) return;
+
+      switchEl.checked = rulesEnabled;
+      if (rulesEnabled) {
+        statusText.textContent = "ACTIVADAS";
+        statusText.className = "text-lg font-bold text-green-600";
+        footerText.textContent = "Todas las reglas están siendo aplicadas automáticamente";
+      } else {
+        statusText.textContent = "DESACTIVADAS";
+        statusText.className = "text-lg font-bold text-red-600";
+        footerText.textContent = "¡MODO LIBRE! Las reglas están pausadas por el Admin";
+      }
+    }
+
+    // Evento del switch
+    document.getElementById('rulesMasterSwitch')?.addEventListener('change', function() {
+      if (currentUser !== 'admin') {
+        this.checked = rulesEnabled;
+        showNotification('Solo el Admin puede pausar las reglas', 'error');
+        return;
+      }
+      rulesEnabled = this.checked;
+      updateRulesSwitchUI();
+      showNotification(rulesEnabled ? 'Reglas REACTIVADAS' : 'Reglas PAUSADAS (modo libre)', rulesEnabled ? 'success' : 'error');
+    });
   
   // Mostrar/ocultar panel de administración de equipos
   const adminTeamsPanel = document.getElementById('adminTeamsPanel');
@@ -972,7 +1024,7 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
         // Validar si el miembro es un analista y si se está sentando con un líder
         // REGLA: ACCO no puede repetir líder dos días seguidos
                 // REGLA: ACCO no puede estar en la misma MESA que el mismo líder dos días seguidos
-        if (selectedTeam === 'acco' && !leaders.includes(selectedName)) {
+        if (rulesEnabled && selectedTeam === 'acco' && !leaders.includes(selectedName)) {
           const targetTable = chair.dataset.table;
 
           // Revisar si hay un líder en esta mesa
@@ -1044,8 +1096,8 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
 
         // Validaciones
         if (hasExistingReservation(selectedName)) { showNotification(`${selectedName} ya tiene una reserva.`, 'error'); return; }
-        if (!canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
-        if (!canMaintainMixedTeams(table, selectedTeam)) {
+        if (rulesEnabled && !canPersonSitAtTable(selectedName, table)) { showNotification('Alan, Jose y Laura deben estar en mesas distintas.', 'error'); return; }
+        if (rulesEnabled && !canMaintainMixedTeams(table, selectedTeam)) {
           if (selectedTeam === 'consultoria') showNotification('Máximo 3 de Consultoría por mesa.', 'error');
           else {
             let mesasCon5ACCO = 0;
@@ -1058,21 +1110,21 @@ const analysts = ['Matias', 'Agustin De', 'Celeste', 'Santiago', 'Milena', 'Ayel
           }
           return;
         }
-        if (!canSitInChair(table, chairNum, selectedTeam, selectedName)) {
+        if (rulesEnabled && !canSitInChair(table, chairNum, selectedTeam, selectedName)) {
           showNotification(selectedTeam === 'consultoria' ? 'Consultoría no puede sentarse junto a otra persona del mismo equipo (excepto Jose).' : 'Máximo 2 ACCO consecutivas.', 'error');
           return;
         }
 
         // No repetir asiento consecutivo
         const prevSeatId = Object.entries(prevReservations).find(([,r])=> r.name===selectedName)?.[0];
-        if (prevSeatId === chairId) {
+        if (rulesEnabled && prevSeatId === chairId) {
           showNotification('No podés repetir el mismo asiento respecto de la última vez', 'error');
           return;
         }
 
         // Rotación 1→2→3 para Alan/Jose/Laura
 const rot = checkRotationForVIP(selectedName, table);
-if (!rot.allowed) {
+if (rulesEnabled && !rot.allowed) {
   showNotification(`Rotación obligatoria: a ${selectedName} le corresponde la Mesa ${rot.expected} en esta sesión.`, 'error');
   return;
 }
@@ -1257,10 +1309,42 @@ function saveVacations() {
       const panel = document.getElementById('rulesPanel');
       if (currentUser === 'admin') {
         panel.classList.remove('hidden');
+        updateRulesSwitchUI();
       } else {
         panel.classList.add('hidden');
       }
     }
+// ===========================================================================
+// BONUS: PERSISTIR ESTADO DEL SWITCH EN FIREBASE (para todos los admin)
+// ===========================================================================
+window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'system/rulesEnabled'), (snap) => {
+  const val = snap.val();
+  // Si nunca se guardó, vale null → lo tratamos como true (reglas activas por defecto)
+  rulesEnabled = val !== false;
+  updateRulesSwitchUI();
+  updateRulesPanelVisibility(); // actualiza visibilidad + UI del switch
+});
+
+// Cuando el admin cambia el switch → guardar en Firebase
+document.getElementById('rulesMasterSwitch')?.addEventListener('change', function() {
+  if (currentUser !== 'admin') {
+    this.checked = rulesEnabled; // vuelve al estado anterior
+    showNotification('Solo el Admin puede pausar las reglas', 'error');
+    return;
+  }
+
+  rulesEnabled = this.checked;
+
+  // Guardar en Firebase para que todos los admin lo vean igual
+  window.firebaseSet(window.firebaseRef(window.firebaseDB, 'system/rulesEnabled'), rulesEnabled);
+
+  updateRulesSwitchUI();
+  showNotification(
+    rulesEnabled ? 'Reglas REACTIVADAS en todo el sistema' : 'Reglas PAUSADAS (modo libre total)',
+    rulesEnabled ? 'success' : 'error'
+  );
+});
+    
 // Mostrar banner + controles admin
 function updateVacationsUI() {
   const banner = document.getElementById('vacationsBanner');
@@ -1375,4 +1459,5 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
   
 </body>
 </html>
+
 
