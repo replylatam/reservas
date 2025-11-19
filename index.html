@@ -1315,20 +1315,6 @@ document.getElementById('rulesMasterSwitch')?.addEventListener('change', functio
     rulesEnabled ? 'success' : 'error'
   );
 });
-
-    
-// === INICIO: Solo Firebase, sin datos locales ===
-renderSessionBanner();
-// Mostrar estado de conexión
-updateConnectionStatus(false);
-// Mostrar mensaje de carga
-showNotification('Conectando a la base de datos...', 'success');
-// Forzar login (incluso si hay autologin, para asegurar que se cargue todo)
-updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
-    if (!tryAutoLogin()) {
-  openLoginModal();
-}
-
     // ==================== REGLAS PERSONALIZADAS DINÁMICAS ====================
     let customRules = [];
 
@@ -1458,11 +1444,25 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
     }
 
     loadCustomRules(); // ← Esto carga las reglas al iniciar
+    
+// === INICIO: Solo Firebase, sin datos locales ===
+renderSessionBanner();
+// Mostrar estado de conexión
+updateConnectionStatus(false);
+// Mostrar mensaje de carga
+showNotification('Conectando a la base de datos...', 'success');
+// Forzar login (incluso si hay autologin, para asegurar que se cargue todo)
+updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
+    if (!tryAutoLogin()) {
+  openLoginModal();
+}
+
 // === FIN ===
   </script>
  
 </body>
 </html>
+
 
 
 
