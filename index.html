@@ -1004,25 +1004,26 @@ if (rulesEnabled && !rot.allowed) {
       });
     });
     // UI
-    function updateChairDisplay(){
-// MAPA DE FOTOS ACTUALIZADO CON TUS LINKS (100% FUNCIONANDO)
-const photoMap = {
-  'laura': 'laura': 'https://i.postimg.cc/pXYgsfGv/Laura.webp',
-  'alan': 'https://i.postimg.cc/4NbrW6LR/Alan.webp',
-  'matias': 'https://i.postimg.cc/pXYgsfGx/Matias.webp',
-  'agustinde': 'https://i.postimg.cc/02qTGWf8/Agus-De.webp',
-  'celeste': 'https://i.postimg.cc/Wb6Q5GWP/Celeste.webp',
-  'santiago': 'https://i.postimg.cc/28FP0Qc3/santi.webp',
-  'milena': 'https://i.postimg.cc/28FP0Qc8/Milena.webp',
-  'ayelen': 'https://i.postimg.cc/28FP0Qcp/Ayelen.webp',
-  'esteban': 'https://i.postimg.cc/VLB3KqGQ/Esteban.webp',
-  'sofia': 'https://i.postimg.cc/5NqZsB7X/Sofia.webp',
-  'julian': 'https://i.postimg.cc/BQcdmTYJ/Julian.webp',
-  'kymey': 'https://i.postimg.cc/MKbh97Pq/Kymey.webp',
-  'nicoeloriginal': 'https://i.postimg.cc/YqfJd6n0/Nico-el-original.webp',  // Nico el original
-  'nicolas2': 'https://i.postimg.cc/QxkRfQ4H/Nicolas-2.webp'                // Nicolas 2
-};
-      chairs.forEach(chair => {
+function updateChairDisplay(){
+  // MAPA DE FOTOS CON TUS LINKS (todo corregido y funcionando)
+  const photoMap = {
+    'laura': 'https://i.postimg.cc/pXYgsfGv/Laura.webp',
+    'alan': 'https://i.postimg.cc/4NbrW6LR/Alan.webp',
+    'matias': 'https://i.postimg.cc/pXYgsfGx/Matias.webp',
+    'agustinde': 'https://i.postimg.cc/02qTGWf8/Agus-De.webp',
+    'celeste': 'https://i.postimg.cc/Wb6Q5GWP/Celeste.webp',
+    'santiago': 'https://i.postimg.cc/28FP0Qc3/santi.webp',
+    'milena': 'https://i.postimg.cc/28FP0Qc8/Milena.webp',
+    'ayelen': 'https://i.postimg.cc/28FP0Qcp/Ayelen.webp',
+    'esteban': 'https://i.postimg.cc/VLB3KqGQ/Esteban.webp',
+    'sofia': 'https://i.postimg.cc/5NqZsB7X/Sofia.webp',
+    'julian': 'https://i.postimg.cc/BQcdmTYJ/Julian.webp',
+    'kymey': 'https://i.postimg.cc/MKbh97Pq/Kymey.webp',
+    'nicoeloriginal': 'https://i.postimg.cc/YqfJd6n0/Nico-el-original.webp',   // Nico el original
+    'nicolas2': 'https://i.postimg.cc/QxkRfQ4H/Nicolas-2.webp'                // Nicolas 2
+  };
+
+  chairs.forEach(chair => {
     const table = chair.dataset.table;
     const num = chair.dataset.chair;
     const id = `${table}-${num}`;
@@ -1036,21 +1037,25 @@ const photoMap = {
       const nameKey = r.name.toLowerCase().replace(/ de /g, '').replace(/ /g, '');
       const photoUrl = photoMap[nameKey] || `https://via.placeholder.com/48/cccccc/666666?text=${r.name.charAt(0)}`;
 
-      const isLeader = ['laura','alan','jose'].includes(nameKey);
+      const isLeader = ['laura', 'alan', 'jose'].includes(nameKey);
       const teamColor = r.team === 'acco' ? 'bg-blue-600' : 'bg-green-600';
 
       chair.innerHTML = `
         <div class="flex flex-col items-center justify-center h-full text-white text-xs font-bold leading-tight">
-          <img src="${photoUrl}" class="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover mb-1">
+          <img src="${photoUrl}" 
+               onerror="this.src='https://via.placeholder.com/48/cccccc/666666?text=${r.name.charAt(0)}'" 
+               class="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover mb-1">
           <div class="truncate w-full text-center px-1">${r.name}</div>
         </div>
       `;
 
-      chair.className = chair.className.replace(/bg-\w+-\d+/g, '') + ' ' + teamColor;
+      // Aplicar color de equipo o líder
+      chair.className = chair.className.replace(/bg-\w+-\d+/g, '') + ' ' + teamColor + ' text-white';
       if (isLeader) chair.classList.replace(teamColor, 'bg-red-600');
 
       chair.style.cursor = 'not-allowed';
     } else {
+      // Silla libre
       chair.className = 'bg-gray-300 border-gray-400 text-gray-700';
       chair.style.cursor = 'pointer';
     }
@@ -1340,4 +1345,5 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
  
 </body>
 </html>
+
 
