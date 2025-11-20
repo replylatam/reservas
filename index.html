@@ -1005,7 +1005,6 @@ if (rulesEnabled && !rot.allowed) {
     });
     // UI
     function updateChairDisplay(){
-      // MAPA DE FOTOS ADAPTADO A TUS NOMBRES REALES (2025)
 // MAPA DE FOTOS ACTUALIZADO CON TUS LINKS (100% FUNCIONANDO)
 const photoMap = {
   'laura': 'laura': 'https://i.postimg.cc/pXYgsfGv/Laura.webp',
@@ -1023,30 +1022,40 @@ const photoMap = {
   'nicoeloriginal': 'https://i.postimg.cc/YqfJd6n0/Nico-el-original.webp',  // Nico el original
   'nicolas2': 'https://i.postimg.cc/QxkRfQ4H/Nicolas-2.webp'                // Nicolas 2
 };
-      chairs.forEach(chair=>{
-        const table = chair.dataset.table;
-        const num = chair.dataset.chair;
-        const id = `${table}-${num}`;
-        chair.classList.remove('blocked');
-        if(blocked[id]){
-          chair.classList.add('blocked');
-        } else if(reservations[id]){
-          const reservedName = reservations[id].name;
-          const special = ['Laura','Alan','Jose'];
-          if (special.includes(reservedName)) {
-            chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-red-500').replace(/border-\w+-\d+/, 'border-red-600').replace(/text-\w+-\d+/, 'text-white');
-          } else {
-            const t = reservations[id].team;
-            if (t==='acco') chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-blue-500').replace(/border-\w+-\d+/, 'border-blue-600').replace(/text-\w+-\d+/, 'text-white');
-            else chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-green-500').replace(/border-\w+-\d+/, 'border-green-600').replace(/text-\w+-\d+/, 'text-white');
-          }
-          chair.style.cursor='not-allowed';
-        } else {
-          chair.className = chair.className.replace(/bg-\w+-\d+/, 'bg-gray-300').replace(/border-\w+-\d+/, 'border-gray-400').replace(/text-\w+/, 'text-gray-700');
-          chair.style.cursor='pointer';
-        }
-      });
+      chairs.forEach(chair => {
+    const table = chair.dataset.table;
+    const num = chair.dataset.chair;
+    const id = `${table}-${num}`;
+    chair.innerHTML = num; // número por defecto
+
+    if (blocked[id]) {
+      chair.classList.add('blocked');
+      chair.innerHTML = '<div class="text-xs text-white">Bloqueada</div>';
+    } else if (reservations[id]) {
+      const r = reservations[id];
+      const nameKey = r.name.toLowerCase().replace(/ de /g, '').replace(/ /g, '');
+      const photoUrl = photoMap[nameKey] || `https://via.placeholder.com/48/cccccc/666666?text=${r.name.charAt(0)}`;
+
+      const isLeader = ['laura','alan','jose'].includes(nameKey);
+      const teamColor = r.team === 'acco' ? 'bg-blue-600' : 'bg-green-600';
+
+      chair.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full text-white text-xs font-bold leading-tight">
+          <img src="${photoUrl}" class="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover mb-1">
+          <div class="truncate w-full text-center px-1">${r.name}</div>
+        </div>
+      `;
+
+      chair.className = chair.className.replace(/bg-\w+-\d+/g, '') + ' ' + teamColor;
+      if (isLeader) chair.classList.replace(teamColor, 'bg-red-600');
+
+      chair.style.cursor = 'not-allowed';
+    } else {
+      chair.className = 'bg-gray-300 border-gray-400 text-gray-700';
+      chair.style.cursor = 'pointer';
     }
+  });
+}
     function updatePendingPeople(){
       const reservedNames = Object.values(reservations).map(r => r.name);
       const pendingACCO = teamMembers.acco.filter(n => !reservedNames.includes(n));
@@ -1331,3 +1340,4 @@ updateRulesPanelVisibility(); // Por si ya estaba logueado como admin
  
 </body>
 </html>
+
